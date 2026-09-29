@@ -1,0 +1,67 @@
+name: Bug report
+description: Something's not working right
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        A quick search of [existing issues](https://github.com/ladybug-me/caelestia-kde/issues?q=is%3Aissue) helps avoid duplicates - if you find one, give it a thumbs up instead.
+
+  - type: checkboxes
+    attributes:
+      label: Issue type
+      description: Pick one label that best describes this issue.
+      options:
+        - label: "Bug - something is broken or not working correctly"
+          required: false
+        - label: "Help wanted - I need assistance with configuration, setup, or usage"
+          required: false
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What went wrong? What did you expect instead?
+      placeholder: |
+        The launcher froze when I typed "terminal" and pressed Enter. I expected it to open Konsole.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: How can someone else trigger this?
+      placeholder: |
+        1. Open the launcher (Super+Space)
+        2. Type "terminal"
+        3. Press Enter
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Caelestia version
+      description: What version of Caelestia are you running? Check with `cat ~/.config/caelestia/version` or look for the version string in the shell.
+      placeholder: e.g. v2.2.2
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Distro
+      description: Which Linux distribution are you on?
+      placeholder: e.g. CachyOS, Arch, Fedora
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Logs or screenshots
+      description: |
+        If relevant, paste logs or drag in screenshots. The `caelestia-shell-ipc log` command shows live shell logs.
+      placeholder: Drag and drop images here, or paste log output.
+    validations:
+      required: false

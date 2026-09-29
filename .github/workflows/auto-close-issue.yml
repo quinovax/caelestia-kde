@@ -1,0 +1,36 @@
+name: Auto-close empty issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  close-empty:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close completely empty issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ toJson(github.event.issue.body) }}
+        run: |
+          set -euo pipefail
+
+          BODY=$(printf '%s' "$ISSUE_BODY" | sed -E 's/^"(.*)"$/\1/' | sed 's/\\"/"/g' | sed 's/\\n/\n/g')
+
+          CLEANED=$(printf '%s' "$BODY" | sed 's/[[:space:]]//g' | sed 's/<!--.*-->//g')
+          if [[ -n "${CLEANED:-}" ]]; then
+            echo "Issue has content - not closing."
+            exit 0
+          fi
+
+          echo "Issue body is empty - closing with a friendly message."
+
+          gh issue close "$ISSUE_NUMBER" \
+            --reason "not planned" \
+            --comment "Hi! It looks like this issue was submitted without any description. If you meant to report something, please open a new issue with details about what happened - we'd love to help!"
