@@ -345,6 +345,10 @@ Item {
                         if (Visibilities.launcherInitialSearch) {
                             search.text = Visibilities.launcherInitialSearch;
                             Visibilities.launcherInitialSearch = "";
+                        } else if (search.text) {
+                            // The content item survives across launcher open/close,
+                            // so clear any leftover query from the previous session.
+                            search.clear();
                         }
                         search.forceActiveFocus();
                     } else {
