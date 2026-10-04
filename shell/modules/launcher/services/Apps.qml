@@ -73,6 +73,6 @@ Searcher {
 
         path: `${Paths.state}/apps.sqlite`
         favouriteApps: GlobalConfig.launcher.favouriteApps
-        entries: DesktopEntries.applications.values.filter(a => !Strings.testRegexList(GlobalConfig.launcher.hiddenApps, a.id))
+        entries: DesktopApps.visible(DesktopEntries.applications.values)
     }
 }

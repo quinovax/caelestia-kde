@@ -25,7 +25,7 @@ PageBase {
         Repeater {
             id: list
 
-            model: [...DesktopEntries.applications.values].sort((a, b) => a.name.localeCompare(b.name))
+            model: DesktopApps.allSorted()
 
             ConnectedRect {
                 id: appItem

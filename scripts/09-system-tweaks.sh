@@ -294,6 +294,23 @@ tweak_kwin_scripts_and_effects() {
     ok "KWin effects and window rules configured."
 }
 
+tweak_waydroid_apps() {
+    info "Unhiding Waydroid Android apps..."
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local helper="${XDG_BIN_HOME:-$HOME/.local/bin}/caelestia-waydroid-apps"
+
+    if [[ -f "$bundle/src/bin/caelestia-waydroid-apps" ]]; then
+        mkdir -p "$(dirname "$helper")"
+        install -m 0755 "$bundle/src/bin/caelestia-waydroid-apps" "$helper"
+        # Waydroid marks the apps that ship with the image NoDisplay=true, and
+        # Quickshell hides NoDisplay entries before the launcher ever sees them,
+        # so without this the container's Android apps are simply absent.
+        "$helper"
+    else
+        warn "Missing src/bin/caelestia-waydroid-apps - skipping."
+    fi
+}
+
 tweak_kde_shortcuts() {
     info "Installing and applying global shortcuts..."
     local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -338,6 +355,7 @@ tweak_default_scheme
 tweak_user_avatar_symlinks
 tweak_kwin_scripts_and_effects
 tweak_kde_shortcuts
+tweak_waydroid_apps
 tweak_reload_kde
 
 echo
