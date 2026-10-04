@@ -46,6 +46,21 @@ Controls.Menu {
                     });
                 } else if (entry.action === "OpenTerminal") {
                     Launch.exec([...GlobalConfig.general.apps.terminal]);
+                } else if (entry.action === "AddFileShortcut") {
+                    // Pick a file or folder and drop a shortcut onto the desktop.
+                    // .desktop files are copied (launchers); anything else becomes
+                    // a symlink, which works for both files and folders.
+                    const script = [
+                        'P=$(kdialog --title "Add file/folder shortcut" --getopenfilename "$HOME/" 2>/dev/null)',
+                        '[ -n "$P" ] || P=$(zenity --title "Add file/folder shortcut" --file-selection 2>/dev/null)',
+                        '[ -n "$P" ] || exit 0',
+                        'DESK=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")',
+                        'case "$P" in',
+                        '  *.desktop) cp "$P" "$DESK/" && chmod +x "$DESK/$(basename "$P")" ;;',
+                        '  *) ln -sfn "$P" "$DESK/$(basename "$P")" ;;',
+                        'esac'
+                    ].join("; ");
+                    Launch.exec(["sh", "-c", script]);
                 }
             } else if (entry.command) {
                 if (entry.command === "terminal") {

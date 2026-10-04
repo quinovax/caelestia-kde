@@ -184,6 +184,19 @@ Item {
                 showDirsFirst: true
                 nameFilters: ["*"]
             }
+
+            // Respect XDG: the desktop folder is not always $HOME/Desktop
+            // (e.g. zh_CN setups use ~/桌面 until xdg dirs are migrated).
+            Process {
+                command: ["sh", "-c", "xdg-user-dir DESKTOP 2>/dev/null || echo \"$HOME/Desktop\""]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        const dir = text.trim();
+                        if (dir.length > 0)
+                            folderModel.folder = "file://" + dir;
+                    }
+                }
+            }
             onObjectAdded: (index, object) => {
                 object.parent = gridItem;
             }
@@ -439,6 +452,12 @@ Item {
                     Text {
                         visible: !delegateItem.renaming
                         Layout.fillWidth: true
+                        // Reserve exactly two lines so the icon area above has a
+                        // constant height and icons line up across rows.
+                        lineHeight: Math.ceil(font.pixelSize * 1.3)
+                        lineHeightMode: Text.FixedHeight
+                        Layout.preferredHeight: lineHeight * 2
+                        verticalAlignment: Text.AlignTop
                         text: {
                             if (delegateItem.fileName.toLowerCase().endsWith(".desktop"))
                                 return delegateItem.desktopEntry?.name || delegateItem.desktopName;

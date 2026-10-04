@@ -81,14 +81,14 @@ Controls.Menu {
                 if (root.isPinnedToDesktop) {
                     Quickshell.execDetached([
                         "sh", "-c",
-                        `rm -f ~/Desktop/"$1" ~/Desktop/"$1.desktop"`,
+                        `DESK=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop"); rm -f "$DESK/$1" "$DESK/$1.desktop"`,
                         "--", appId
                     ]);
                     root.isPinnedToDesktop = false;
                 } else {
                     Quickshell.execDetached([
                         "sh", "-c",
-                        `FILE=$(find /usr/share/applications ~/.local/share/applications /var/lib/flatpak/exports/share/applications -name "$1" -o -name "$1.desktop" 2>/dev/null | head -n 1); if [ -n "$FILE" ]; then cp "$FILE" ~/Desktop/; BASENAME=$(basename "$FILE"); chmod +x ~/Desktop/"$BASENAME"; fi`,
+                        `DESK=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop"); FILE=$(find /usr/share/applications ~/.local/share/applications ~/.local/share/flatpak/exports/share/applications /var/lib/flatpak/exports/share/applications -name "$1" -o -name "$1.desktop" 2>/dev/null | head -n 1); if [ -n "$FILE" ]; then cp "$FILE" "$DESK/"; BASENAME=$(basename "$FILE"); chmod +x "$DESK/$BASENAME"; fi`,
                         "--", appId
                     ]);
                     root.isPinnedToDesktop = true;
@@ -140,7 +140,7 @@ Controls.Menu {
     Process {
         id: desktopCheckProc
 
-        command: ["sh", "-c", "test -f ~/Desktop/\"$1\" || test -f ~/Desktop/\"$1.desktop\"", "--", root.app?.id ?? ""]
+        command: ["sh", "-c", "DESK=$(xdg-user-dir DESKTOP 2>/dev/null || echo \"$HOME/Desktop\"); test -f \"$DESK/$1\" || test -f \"$DESK/$1.desktop\"", "--", root.app?.id ?? ""]
         onExited: code => {
             root.isPinnedToDesktop = (code === 0);
         }

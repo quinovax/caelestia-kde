@@ -405,8 +405,28 @@ Singleton {
             return;
         }
 
-        if (request.startsWith("togglespecialworkspace"))
+        if (request.startsWith("togglespecialworkspace")) {
+            // KWin has no dynamic special workspaces; named desktops ("special:<name>")
+            // stand in for them. Toggle = switch to the named desktop, or back to the
+            // last normal desktop if it is already active.
+            const name = request.slice("togglespecialworkspace".length).trim();
+            const wanted = name ? `special:${name}` : "special";
+            const target = root.workspaces.find(w => (w.name ?? "") === wanted);
+            if (!target)
+                return;
+
+            const activeName = (root.workspaces.find(w => w.active)?.name ?? "");
+            if (activeName === wanted) {
+                const fallback = root.workspaces.find(w => !(w.name ?? "").startsWith("special:"));
+                if (fallback)
+                    root.switchToWorkspace(fallback.id);
+            } else {
+                if (activeName && !activeName.startsWith("special:"))
+                    root.lastSpecialWorkspace = activeName;
+                root.switchToWorkspace(target.id);
+            }
             return;
+        }
     }
 
     function cycleSpecialWorkspace(direction: string): void {

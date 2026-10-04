@@ -281,14 +281,15 @@ Item {
                 from: "active"
                 to: ""
 
-                SequentialAnimation {
-                    Anim {
-                        property: "opacity"
-                        type: Anim.DefaultEffects
-                    }
-                    PropertyAction {
-                        property: "active"
-                    }
+                // Deactivate immediately (no fade-out): a fade-out leaves the old
+                // popout semi-visible while the next one fades in, and an interrupted
+                // transition can wedge it there for good (menus stacking on top of
+                // each other).
+                PropertyAction {
+                    property: "opacity"
+                }
+                PropertyAction {
+                    property: "active"
                 }
             },
             Transition {
