@@ -11,6 +11,12 @@ import org.kde.kwin
 // - Meta+PgUp: switch to the previous normal desktop (clamped at the first).
 // - Recycling: normal desktops with no windows are removed, keeping at most
 //   one empty desktop. special:* desktops are never touched.
+//
+// The two actions are named "Dynamic Workspaces: Next Desktop" /
+// "Dynamic Workspaces: Previous Desktop". Their default sequences are set
+// here, but KGlobalAccel gives a stored value in kglobalshortcutsrc precedence
+// over the sequence default, so the installer also writes the shortcuts
+// explicitly through setForeignShortcut.
 
 Item {
     id: root
@@ -95,10 +101,19 @@ Item {
         recycleDebounce.restart();
     }
 
+    // Wires a Workspace signal to a callback. The signal lives on the global
+    // Workspace singleton and therefore outlives this item, so a lambda that
+    // used the root id directly would throw once root is destroyed (KWin
+    // scripting can leave such connections behind when a script is unloaded).
+    // The null guard keeps a stale connection silent instead of spamming the
+    // journal.
     function tryConnect(obj, sig, fn) {
         try {
             if (obj[sig] !== undefined)
-                obj[sig].connect(fn);
+                obj[sig].connect(() => {
+                    if (root)
+                        fn();
+                });
         } catch (e) {
             console.warn("dynamicworkspaces: cannot connect", sig, e);
         }
@@ -108,18 +123,21 @@ Item {
         id: recycleDebounce
 
         interval: 400
-        onTriggered: root.recycle()
+        onTriggered: {
+            if (root)
+                root.recycle();
+        }
     }
 
     ShortcutHandler {
-        name: "DWS Next"
+        name: "Dynamic Workspaces: Next Desktop"
         text: "Switch to the next desktop, creating one past the last"
         sequence: "Meta+PgDown"
         onActivated: root.nextDesktop()
     }
 
     ShortcutHandler {
-        name: "DWS Previous"
+        name: "Dynamic Workspaces: Previous Desktop"
         text: "Switch to the previous desktop"
         sequence: "Meta+PgUp"
         onActivated: root.previousDesktop()

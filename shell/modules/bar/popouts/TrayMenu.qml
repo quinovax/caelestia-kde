@@ -53,6 +53,9 @@ StackView {
         property bool isSubMenu
         property bool shown
         property int groupRebuildCount: 0
+        // Menus like fcitx5's can list a dozen entries; without a cap the
+        // popout would swallow most of the screen. Scroll anything past this.
+        readonly property real maxScrollHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1080) * 0.4
         property real perfOpenStartedAt: 0
 
         required property real scaleOffset
@@ -151,6 +154,27 @@ StackView {
 
             onModelChanged: menu.queueUpdateGroups()
         }
+
+        Flickable {
+            id: scrollArea
+
+            // Size from the cards, never from the parent Column: the Column's own
+            // implicitWidth is derived from this item, so parent.width here would
+            // be a binding loop and blow the popout up to screen size.
+            implicitWidth: scrollContent.implicitWidth
+            implicitHeight: Math.min(scrollContent.implicitHeight, menu.maxScrollHeight)
+            contentWidth: width
+            contentHeight: scrollContent.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            interactive: contentHeight > height
+
+            Column {
+                id: scrollContent
+
+                width: scrollArea.width
+                spacing: menu.spacing
 
         Repeater {
             model: menu.itemGroups
@@ -282,6 +306,8 @@ StackView {
                     }
                 }
             }
+        }
+        }
         }
 
         Loader {

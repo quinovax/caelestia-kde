@@ -223,6 +223,104 @@ tweak_user_avatar_symlinks() {
     fi
 }
 
+
+# ---------------------------------------------------------------- Quinovax ---
+# The KDE port ships its own desktop defaults on top of upstream: a dynamic
+# virtual desktops KWin script, the genie (Magic Lamp) minimize animation, a
+# rule that hides xwaylandvideobridge's black blob, and the global shortcut
+# set. They live here rather than in their own step so no TUI rebuild is
+# needed - Runner.cpp's step table is compiled into the installer binary.
+
+tweak_kwin_scripts_and_effects() {
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local src="$bundle/kwin-scripts/dynamicworkspaces"
+    local dst="${XDG_DATA_HOME:-$HOME/.local/share}/kwin/scripts/dynamicworkspaces"
+
+    info "Installing dynamic workspaces KWin script..."
+    if [[ -d "$src" ]]; then
+        mkdir -p "$(dirname "$dst")"
+        rm -rf "$dst" 2>/dev/null || true
+        cp -a "$src" "$dst"
+        ok "Installed KWin script: dynamicworkspaces"
+    else
+        warn "Missing $src - dynamic workspaces will not be available."
+    fi
+
+    info "Enabling KWin effects and window rules..."
+    # Magic Lamp is the only effect in KWin's "minimize" exclusive group, so
+    # enabling it (and keeping Squash off) makes the genie animation the
+    # default minimize/restore animation.
+    kwriteconfig6 --file kwinrc --group Plugins --key dynamicworkspacesEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key rememberwindowpositionsEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Effect-magiclamp --key AnimationDuration 300 2>/dev/null || true
+
+    # xwaylandvideobridge shows up as a black blob on the desktop; the only
+    # thing a user can do with it is look at it, so hide it everywhere.
+    local group="xwaylandbridge-hide"
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key Description "Hide xwaylandvideobridge (black blob fix)"
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key enabled true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key types 1
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclassmatch 3
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclasscomplete false
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclass '(?i)^xwaylandvideobridge$'
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key acceptfocus false
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key acceptfocusrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key noborder true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key noborderrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityactive 0
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityactiverule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityinactive 0
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityinactiverule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skippager true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skippagerrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skipswitcher true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skipswitcherrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skiptaskbar true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skiptaskbarrule 2
+
+    # kwinrulesrc [General] indexes the rule groups; append ours if missing and
+    # keep count in step with the list.
+    local rules newrules count
+    rules="$(kreadconfig6 --file kwinrulesrc --group General --key rules 2>/dev/null || true)"
+    if [[ ",${rules}," != *",${group},"* ]]; then
+        newrules="${rules:+$rules,}$group"
+        kwriteconfig6 --file kwinrulesrc --group General --key rules "$newrules"
+        count="$(awk -F, '{print NF}' <<<"$newrules")"
+        kwriteconfig6 --file kwinrulesrc --group General --key count "$count"
+    fi
+
+    ok "KWin effects and window rules configured."
+}
+
+tweak_kde_shortcuts() {
+    info "Installing and applying global shortcuts..."
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local helper="${XDG_BIN_HOME:-$HOME/.local/bin}/caelestia-fix-shortcuts"
+
+    if [[ -f "$bundle/src/bin/caelestia-fix-shortcuts" ]]; then
+        mkdir -p "$(dirname "$helper")"
+        install -m 0755 "$bundle/src/bin/caelestia-fix-shortcuts" "$helper"
+    else
+        warn "Missing src/bin/caelestia-fix-shortcuts - skipping."
+        return 0
+    fi
+
+    # Shortcuts live in KWin's memory, not in a config file, so they can only
+    # be written from inside a session. The helper stays installed for
+    # re-applying after an update.
+    if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v gdbus >/dev/null 2>&1; then
+        if "$helper" >/dev/null 2>&1; then
+            ok "Global shortcuts applied."
+        else
+            warn "caelestia-fix-shortcuts reported failures - run it manually to see details."
+        fi
+    else
+        info "No session bus in this step - run '$helper' after logging in."
+    fi
+}
+
 if [[ "${1:-}" == "--list" ]]; then
     echo
     echo "Available tweaks:"
@@ -238,6 +336,8 @@ tweak_no_splash_screen
 tweak_default_shell
 tweak_default_scheme
 tweak_user_avatar_symlinks
+tweak_kwin_scripts_and_effects
+tweak_kde_shortcuts
 tweak_reload_kde
 
 echo

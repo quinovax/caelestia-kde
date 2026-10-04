@@ -14,7 +14,13 @@ Item {
     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
     readonly property Item current: currentPopout?.item ?? null
 
-    readonly property var trayItemsToIndices: SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id)).reduce((acc, item, i) => {
+    // The tray items the bar actually shows. THIS FILTER MUST MATCH THE ONE IN
+    // bar/components/Tray.qml EXACTLY: the "traymenu<N>" names index into this
+    // same list, so any extra condition (e.g. hasMenu) shifts the indices and
+    // makes right-click open the wrong item's menu - or none at all.
+    readonly property var visibleTrayItems: SystemTray.items.values.filter(i => i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id))
+
+    readonly property var trayItemsToIndices: root.visibleTrayItems.reduce((acc, item, i) => {
         acc[item.id] = i;
         return acc;
     }, {})
@@ -26,12 +32,16 @@ Item {
         if (!name.startsWith("traymenu"))
             return null;
         const idx = parseInt(name.slice("traymenu".length));
-        const items = SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id));
+        const items = root.visibleTrayItems;
         return idx >= 0 && idx < items.length ? items[idx] : null;
     }
 
     onCurrentTrayItemChanged: {
-        if (trayMenu.shouldBeActive && trayMenu.currentTrayItem) {
+        // NOTE: currentTrayItem lives on this (Content) item, not on the
+        // `trayMenu` Loader. Reading `trayMenu.currentTrayItem` yields
+        // undefined, which made TrayMenu's trayItem binding always null and
+        // therefore rendered a zero-sized - i.e. invisible - menu.
+        if (trayMenu.shouldBeActive && root.currentTrayItem) {
             trayMenu.sourceComponent = null;
             trayMenu.sourceComponent = trayMenuComp;
         }
@@ -244,7 +254,9 @@ Item {
 
                 TrayMenu {
                     popouts: root.popouts
-                    trayItem: trayMenu.currentTrayItem?.menu ?? null // qmllint disable unresolved-type
+                    // currentTrayItem is a property of Content (root), not of
+                    // the trayMenu Loader - see onCurrentTrayItemChanged.
+                    trayItem: root.currentTrayItem?.menu ?? null // qmllint disable unresolved-type
                 }
             }
         }

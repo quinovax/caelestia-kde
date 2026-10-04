@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# (Re)apply the KWin global shortcuts the Caelestia KDE port expects.
+#
+# Why this exists: since Plasma 6.5 kglobalaccel lives inside kwin_wayland, so
+# editing ~/.config/kglobalshortcutsrc by hand does nothing until the next
+# login - and KWin may overwrite the file from its in-memory state at any time.
+# Everything has to go through KGlobalAccel on D-Bus. Foreign actions must be
+# set with setForeignShortcut: setShortcut is for the action's own owner and is
+# silently rejected for everyone else.
+#
+# Key codes are Qt::Key | modifier (Shift 0x02000000 / Ctrl 0x04000000 /
+# Alt 0x08000000 / Meta 0x10000000).
+#
+# Usage: caelestia-fix-shortcuts          # apply and verify
+#        caelestia-fix-shortcuts --check  # report only
+set -uo pipefail
+
+KG=org.kde.kglobalaccel
+ROOT=/kglobalaccel
+IFACE=org.kde.KGlobalAccel
+
+# name | key code | friendly name
+TARGETS=(
+  "Show Desktop|268435524|暂时显示桌面"                              # Meta+D       show desktop
+  "Window Minimize|301989956|最小化窗口"                             # Meta+Shift+D minimize focused window
+  "Dynamic Workspaces: Previous Desktop|285212694|Switch to the previous desktop"  # Meta+PgUp
+  "Dynamic Workspaces: Next Desktop|285212695|Switch to the next desktop, creating one past the last"  # Meta+PgDown
+)
+
+# Actions that are known key thieves. Clearing them first matters: when two
+# owners want the same key, KWin demotes the later one to "none" at load time.
+SQUASH=(
+  "kos-platform|net.local.kos-clipboard|kos-platform"
+  "kos-platform|net.local.kos-control-center|kos-platform"
+  "kos-platform|net.local.kos-launcher|kos-platform"
+  "kos-platform|net.local.kos-overview|kos-platform"
+  "kos-platform|net.local.kos-show-desktop|kos-platform"
+  "kos-platform|net.local.kos-window-force-maximize|kos-platform"
+  "kos-platform|net.local.kos-window-fullscreen|kos-platform"
+  "kos-platform|net.local.kos-window-switcher|kos-platform"
+  "kwin|KrohnkiteDecrease|KWin"
+  "kwin|KrohnkiteToggleFloat|KWin"
+  "kwin|KrohnkiteFloatAll|KWin"
+  "kwin|DWS Next|KWin"
+  "kwin|DWS Previous|KWin"
+  "kwin|Dynamic Workspaces: Switch to Next Desktop|KWin"
+  "kwin|Dynamic Workspaces: Switch to Previous Desktop|KWin"
+  "caelestia-shell|caelestia-shortcut-ocr|caelestia-shell"
+  "plasmashell|next activity|plasmashell"
+  "plasmashell|manage activities|plasmashell"
+)
+
+read_binding() {
+  gdbus call --session -d "$KG" -o "$ROOT" -m "$IFACE.shortcut" "['kwin','$1','KWin','$2']" 2>&1
+}
+
+show_state() {
+  echo "当前状态："
+  for t in "${TARGETS[@]}"; do
+    IFS='|' read -r name code friendly <<<"$t"
+    printf '  %-36s %s\n' "$name" "$(read_binding "$name" "$friendly")"
+  done
+  echo "  冲突检查："
+  for p in "Meta+D:268435524" "Meta+Shift+D:301989956" "Meta+PgUp:285212694" "Meta+PgDown:285212695" "Meta+F:268435526" "Meta+Shift+F:301989958" "Meta+Q:268435537"; do
+    owners=$(gdbus call --session -d "$KG" -o "$ROOT" -m "$IFACE.getGlobalShortcutsByKey" "${p##*:}" 2>&1 \
+             | grep -oE "'[^']+', '[^']*', '[^']+'" | tr '\n' ' ')
+    printf '    %-13s %s\n' "${p%%:*}" "${owners:-（无属主）}"
+  done
+}
+
+if [[ "${1:-}" == "--check" ]]; then
+  show_state
+  exit 0
+fi
+
+echo "== 1. 清理已知的抢键者 =="
+for spec in "${SQUASH[@]}"; do
+  IFS='|' read -r comp act friendly <<<"$spec"
+  gdbus call --session -d "$KG" -o "$ROOT" -m "$IFACE.setForeignShortcut" \
+    "['$comp','$act','$comp','$friendly']" "[]" >/dev/null 2>&1
+  gdbus call --session -d "$KG" -o "$ROOT" -m "$IFACE.unregister" "'$comp'" "'$act'" >/dev/null 2>&1
+  printf '  cleared %s\n' "$act"
+done
+
+echo "== 2. 写入目标绑定 =="
+for t in "${TARGETS[@]}"; do
+  IFS='|' read -r name code friendly <<<"$t"
+  printf '  %-36s -> %s\n' "$name" "$code"
+  gdbus call --session -d "$KG" -o "$ROOT" -m "$IFACE.setForeignShortcut" \
+    "['kwin','$name','KWin','$friendly']" "[$code]" >/dev/null 2>&1
+done
+
+echo
+show_state
+echo
+echo "完成。结果已由 KWin 自动回写 ~/.config/kglobalshortcutsrc（该文件字段顺序为『当前值, 默认值, 友好名』）。"
