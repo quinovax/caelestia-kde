@@ -1,0 +1,21 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "quinovax@localhost",
+                "Name": "quinovax"
+            }
+        ],
+        "Description": "Dynamic virtual desktops: Meta+PgDown/PgUp switch and auto-create a desktop past the last one; empty desktops are recycled, keeping at most one empty. Skips caelestia's special:* desktops.",
+        "EnabledByDefault": false,
+        "Icon": "view-private",
+        "Id": "dynamicworkspaces",
+        "License": "GPL-3.0",
+        "Name": "Dynamic Workspaces",
+        "Version": "1.0",
+        "Website": "https://github.com/quinovax/caelestia-kde"
+    },
+    "X-Plasma-API": "declarativescript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "KPackageStructure": "KWin/Script"
+}

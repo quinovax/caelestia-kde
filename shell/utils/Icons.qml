@@ -258,10 +258,14 @@ Singleton {
         return name[0].toUpperCase();
     }
 
-    function getTrayIcon(id: string, icon: string): string {
-        for (const sub of GlobalConfig.bar.tray.iconSubs.values)
-            if (sub.id === id)
+    // `id` is the StatusNotifierItem Id, which some apps (e.g. tray_manager)
+    // regenerate randomly on every launch. A sub with id "title:<name>" matches
+    // the item's human-readable Title instead, which stays stable.
+    function getTrayIcon(id: string, icon: string, title = ""): string {
+        for (const sub of GlobalConfig.bar.tray.iconSubs.values) {
+            if (sub.id === id || (sub.id.startsWith("title:") && sub.id.slice(6) === title))
                 return sub.image ? Qt.resolvedUrl(sub.image) : Quickshell.iconPath(sub.icon);
+        }
 
         if (icon.includes("?path=")) {
             const [name, path] = icon.split("?path=");

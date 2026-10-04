@@ -183,7 +183,7 @@ StackView {
 
                             required property var modelData
 
-                            implicitWidth: parent.width
+                            implicitWidth: parent ? parent.width : 0
                             implicitHeight: childrenItem.implicitHeight
 
                             radius: Tokens.rounding.full * menu.scaleOffset

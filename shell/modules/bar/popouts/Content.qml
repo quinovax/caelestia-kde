@@ -14,10 +14,28 @@ Item {
     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
     readonly property Item current: currentPopout?.item ?? null
 
-    readonly property var trayItemsToIndices: SystemTray.items.values.filter(i => i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id)).reduce((acc, item, i) => {
+    readonly property var trayItemsToIndices: SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id)).reduce((acc, item, i) => {
         acc[item.id] = i;
         return acc;
     }, {})
+
+    // The tray item whose menu should currently be shown (parsed from
+    // popouts.currentName === "traymenu<N>").
+    readonly property SystemTrayItem currentTrayItem: {
+        const name = root.popouts.currentName;
+        if (!name.startsWith("traymenu"))
+            return null;
+        const idx = parseInt(name.slice("traymenu".length));
+        const items = SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id));
+        return idx >= 0 && idx < items.length ? items[idx] : null;
+    }
+
+    onCurrentTrayItemChanged: {
+        if (trayMenu.shouldBeActive && trayMenu.currentTrayItem) {
+            trayMenu.sourceComponent = null;
+            trayMenu.sourceComponent = trayMenuComp;
+        }
+    }
 
     readonly property real contentMargin: Tokens.padding.large * (currentPopout?.item?.scaleOffset ?? 1.0)
     readonly property real availableWidth: Math.max(0, ((QsWindow.window as QsWindow)?.screen?.width ?? 0) - contentMargin * 2 - Tokens.padding.extraLargeIncreased * (currentPopout?.item?.scaleOffset ?? 1.0))
@@ -207,38 +225,26 @@ Item {
             }
         }
 
-        Repeater {
-            model: ScriptModel {
-                values: SystemTray.items.values.filter(i => i.hasMenu && i.status !== Status.Passive && !GlobalConfig.bar.tray.hiddenIcons.includes(i.id))
-            }
+        // Single TrayMenu popout shared by all tray items: the popout's name
+        // follows popouts.currentName (traymenu<N>) so the instance stays
+        // mounted while switching between tray items. Only one TrayMenu ever
+        // exists, which makes two menus rendering at once structurally
+        // impossible (previously each item had its own Popout and a wedged
+        // fade-out left the old menu visible under the new one).
+        Popout {
+            id: trayMenu
 
-            Popout {
-                id: trayMenu
+            name: "traymenu"
+            matchPrefix: true
+            previewKey: "trayMenu"
+            sourceComponent: trayMenuComp
 
-                required property SystemTrayItem modelData
+            Component {
+                id: trayMenuComp
 
-                name: `traymenu${root.trayItemsToIndices[modelData.id]}`
-                previewKey: "trayMenu"
-                sourceComponent: trayMenuComp
-
-                Connections {
-                    function onHasCurrentChanged(): void {
-                        if (root.popouts.hasCurrent && trayMenu.shouldBeActive) {
-                            trayMenu.sourceComponent = null;
-                            trayMenu.sourceComponent = trayMenuComp;
-                        }
-                    }
-
-                    target: root.popouts
-                }
-
-                Component {
-                    id: trayMenuComp
-
-                    TrayMenu {
-                        popouts: root.popouts
-                        trayItem: trayMenu.modelData.menu // qmllint disable unresolved-type
-                    }
+                TrayMenu {
+                    popouts: root.popouts
+                    trayItem: trayMenu.currentTrayItem?.menu ?? null // qmllint disable unresolved-type
                 }
             }
         }
@@ -250,8 +256,11 @@ Item {
 
         required property string name
         property string previewKey: name
+        // When true, shouldBeActive matches currentName starting with `name`
+        // (used by the single shared tray popout: currentName is "traymenu<N>").
+        property bool matchPrefix: false
         property real minScale: 0.1
-        readonly property bool shouldBeActive: root.popouts.currentName === name
+        readonly property bool shouldBeActive: root.popouts.currentName === name || (matchPrefix && root.popouts.currentName.startsWith(name))
 
         readonly property real masterScale: !isNaN(GlobalConfig.bar.previewScale) ? GlobalConfig.bar.previewScale : 1.0
         readonly property real elementOffset: GlobalConfig.bar.perElementPreviewScale ? (!isNaN(GlobalConfig.bar.previewScales[previewKey]) ? GlobalConfig.bar.previewScales[previewKey] : 0.0) : 0.0
