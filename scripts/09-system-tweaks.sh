@@ -233,24 +233,30 @@ tweak_user_avatar_symlinks() {
 
 tweak_kwin_scripts_and_effects() {
     local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-    local src="$bundle/kwin-scripts/dynamicworkspaces"
-    local dst="${XDG_DATA_HOME:-$HOME/.local/share}/kwin/scripts/dynamicworkspaces"
+    local scripts_root="${XDG_DATA_HOME:-$HOME/.local/share}/kwin/scripts"
+    local script
 
-    info "Installing dynamic workspaces KWin script..."
-    if [[ -d "$src" ]]; then
-        mkdir -p "$(dirname "$dst")"
-        rm -rf "$dst" 2>/dev/null || true
-        cp -a "$src" "$dst"
-        ok "Installed KWin script: dynamicworkspaces"
-    else
-        warn "Missing $src - dynamic workspaces will not be available."
-    fi
+    for script in dynamicworkspaces genieshowdesktop; do
+        local src="$bundle/kwin-scripts/$script"
+        local dst="$scripts_root/$script"
+
+        info "Installing KWin script: $script..."
+        if [[ -d "$src" ]]; then
+            mkdir -p "$scripts_root"
+            rm -rf "$dst" 2>/dev/null || true
+            cp -a "$src" "$dst"
+            ok "Installed KWin script: $script"
+        else
+            warn "Missing $src - $script will not be available."
+        fi
+    done
 
     info "Enabling KWin effects and window rules..."
     # Magic Lamp is the only effect in KWin's "minimize" exclusive group, so
     # enabling it (and keeping Squash off) makes the genie animation the
     # default minimize/restore animation.
     kwriteconfig6 --file kwinrc --group Plugins --key dynamicworkspacesEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key genieshowdesktopEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key rememberwindowpositionsEnabled true 2>/dev/null || true

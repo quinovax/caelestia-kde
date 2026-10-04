@@ -45,6 +45,9 @@ SQUASH=(
   "kwin|DWS Previous|KWin"
   "kwin|Dynamic Workspaces: Switch to Next Desktop|KWin"
   "kwin|Dynamic Workspaces: Switch to Previous Desktop|KWin"
+  # KWin's built-in Show Desktop hides windows without running the minimize
+  # effect, so it would fight Meta+D with the genie script for no benefit.
+  "kwin|Show Desktop|KWin"
   "caelestia-shell|caelestia-shortcut-ocr|caelestia-shell"
   "plasmashell|next activity|plasmashell"
   "plasmashell|manage activities|plasmashell"
