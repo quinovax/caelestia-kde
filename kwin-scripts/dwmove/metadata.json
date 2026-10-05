@@ -6,12 +6,12 @@
                 "Name": "quinovax"
             }
         ],
-        "Description": "Dynamic virtual desktops: Meta+PgDown/PgUp switch and auto-create a desktop past the last one; empty desktops are recycled, keeping at most one empty. Skips caelestia's special:* desktops.",
+        "Description": "Dynamic virtual desktops: Meta+PgDown/PgUp switch and auto-create a desktop past the last one; Meta+Shift+PgDown/PgUp move every window of the current desktop to the next/previous one; Meta+Ctrl+PgDown/PgUp move only the focused window. Empty desktops are recycled, keeping at most one empty. Skips caelestia's special:* desktops.",
         "EnabledByDefault": false,
         "Icon": "view-private",
-        "Id": "dynamicworkspaces",
+        "Id": "dwmove",
         "License": "GPL-3.0",
-        "Name": "Dynamic Workspaces",
+        "Name": "Dynamic Workspaces (dwmove)",
         "Version": "1.0",
         "Website": "https://github.com/quinovax/caelestia-kde"
     },

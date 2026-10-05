@@ -25,6 +25,10 @@ TARGETS=(
   "Window Minimize|301989956|最小化窗口"                             # Meta+Shift+D minimize focused window
   "Dynamic Workspaces: Previous Desktop|285212694|Switch to the previous desktop"  # Meta+PgUp
   "Dynamic Workspaces: Next Desktop|285212695|Switch to the next desktop, creating one past the last"  # Meta+PgDown
+  "Dynamic Workspaces: Move All Windows to Next Desktop|318767127|Move every window of this desktop to the next desktop"        # Meta+Shift+PgDown
+  "Dynamic Workspaces: Move All Windows to Previous Desktop|318767126|Move every window of this desktop to the previous desktop"  # Meta+Shift+PgUp
+  "Dynamic Workspaces: Move Window to Next Desktop|352321559|Move the focused window to the next desktop"                          # Meta+Ctrl+PgDown
+  "Dynamic Workspaces: Move Window to Previous Desktop|352321558|Move the focused window to the previous desktop"                  # Meta+Ctrl+PgUp
 )
 
 # Actions that are known key thieves. Clearing them first matters: when two

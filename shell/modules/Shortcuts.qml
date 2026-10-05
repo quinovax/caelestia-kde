@@ -299,11 +299,6 @@ Scope {
         onPressed: Launch.exec([...GlobalConfig.general.apps.terminal])
     }
     CustomShortcut {
-        name: "firefox"
-        description: qsTr("Launch Browser")
-        onPressed: Launch.exec(["firefox"])
-    }
-    CustomShortcut {
         name: "code"
         description: qsTr("Launch Editor")
         onPressed: Launch.exec(["code"])

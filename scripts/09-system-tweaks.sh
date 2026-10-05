@@ -236,7 +236,19 @@ tweak_kwin_scripts_and_effects() {
     local scripts_root="${XDG_DATA_HOME:-$HOME/.local/share}/kwin/scripts"
     local script
 
-    for script in dynamicworkspaces genieshowdesktop; do
+    # dwmove is the renamed dynamicworkspaces (new plugin Id: KWin caches the
+    # compiled QML by URL, so a session that already loaded the old Id keeps
+    # running the old code until logout either way).
+    local old_dst="$scripts_root/dynamicworkspaces"
+    if [[ -d "$old_dst" ]]; then
+        # Upgraded from the pre-rename layout: retire the old plugin so both
+        # instances never run their recycle logic at once.
+        info "Retiring pre-rename dynamicworkspaces plugin..."
+        kwriteconfig6 --file kwinrc --group Plugins --key dynamicworkspacesEnabled false 2>/dev/null || true
+        rm -rf "$old_dst" 2>/dev/null || true
+    fi
+
+    for script in dwmove genieshowdesktop; do
         local src="$bundle/kwin-scripts/$script"
         local dst="$scripts_root/$script"
 
@@ -255,7 +267,7 @@ tweak_kwin_scripts_and_effects() {
     # Magic Lamp is the only effect in KWin's "minimize" exclusive group, so
     # enabling it (and keeping Squash off) makes the genie animation the
     # default minimize/restore animation.
-    kwriteconfig6 --file kwinrc --group Plugins --key dynamicworkspacesEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key dwmoveEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key genieshowdesktopEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
