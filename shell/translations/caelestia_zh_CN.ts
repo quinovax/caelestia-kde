@@ -4208,7 +4208,7 @@
 <context>
     <name>DesktopIcons</name>
     <message>
-        <location filename="../modules/background/DesktopIcons.qml" line="+208"/>
+        <location filename="../modules/background/DesktopIcons.qml" line="+222"/>
         <source>File operation failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -9109,204 +9109,189 @@
 <context>
     <name>Shortcuts</name>
     <message>
-        <location filename="../modules/Shortcuts.qml" line="+28"/>
+        <location filename="../modules/Shortcuts.qml" line="+38"/>
         <source>Open nexus</source>
-        <translation type="unfinished"></translation>
+        <translation>打开设置</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Toggle launcher, dashboard and osd</source>
-        <translation type="unfinished"></translation>
+        <translation>切换启动台、仪表盘和 OSD</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Toggle dashboard</source>
-        <translation type="unfinished"></translation>
+        <translation>切换仪表盘</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Toggle overview</source>
-        <translation type="unfinished"></translation>
+        <translation>切换概览</translation>
     </message>
     <message>
         <location line="+19"/>
         <source>Toggle screenshot overlay</source>
-        <translation type="unfinished"></translation>
+        <translation>打开截图选区</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Toggle Google Lens search</source>
-        <translation type="unfinished"></translation>
+        <translation>谷歌镜头搜索</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Recognize text on screen</source>
-        <translation type="unfinished"></translation>
+        <translation>识别屏幕文字（OCR）</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Toggle screen recording</source>
-        <translation type="unfinished"></translation>
+        <translation>开始/停止屏幕录制</translation>
     </message>
     <message>
         <location line="+31"/>
         <source>Toggle session menu</source>
-        <translation type="unfinished"></translation>
+        <translation>切换会话菜单</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Toggle launcher</source>
-        <translation type="unfinished"></translation>
+        <translation>切换启动台</translation>
     </message>
     <message>
         <location line="+15"/>
         <source>Interrupt launcher keybind</source>
-        <translation type="unfinished"></translation>
+        <translation>中断启动台按键</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Toggle sidebar</source>
-        <translation type="unfinished"></translation>
+        <translation>切换侧边栏</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Toggle AI Assistant</source>
-        <translation type="unfinished"></translation>
+        <translation>切换 AI 助手</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Toggle utilities</source>
-        <translation type="unfinished"></translation>
+        <translation>切换实用工具</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Open emoji picker</source>
-        <translation type="unfinished"></translation>
+        <translation>打开表情选择器</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Open clipboard history</source>
-        <translation type="unfinished"></translation>
+        <translation>打开剪贴板历史</translation>
     </message>
     <message>
         <location line="+29"/>
         <source>Open window switcher</source>
-        <translation type="unfinished"></translation>
+        <translation>打开窗口切换器</translation>
     </message>
     <message>
         <location line="+21"/>
         <source>Open window switcher (reverse)</source>
-        <translation type="unfinished"></translation>
+        <translation>反向打开窗口切换器</translation>
     </message>
     <message>
         <location line="+21"/>
         <source>Open wallpaper picker</source>
-        <translation type="unfinished"></translation>
+        <translation>打开壁纸选择器</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Open keybinds list</source>
-        <translation type="unfinished"></translation>
+        <translation>打开快捷键列表</translation>
     </message>
     <message>
         <location line="+9"/>
         <source>Launch Terminal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Launch Browser</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Launch Editor</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+5"/>
-        <source>Launch GitHub Desktop</source>
-        <translation type="unfinished"></translation>
+        <translation>启动终端</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>Launch File Manager</source>
-        <translation type="unfinished"></translation>
+        <translation>启动文件管理器</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>Color Picker</source>
-        <translation type="unfinished">取色器</translation>
+        <translation>取色器</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 1</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 1</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 2</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 2</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 3</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 3</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 4</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 4</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 5</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 5</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 6</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 6</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 7</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 7</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 8</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 8</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 9</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 9</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Switch to workspace 10</source>
-        <translation type="unfinished"></translation>
+        <translation>切换到工作区 10</translation>
     </message>
     <message>
         <location line="+89"/>
         <source>Focus the window above</source>
-        <translation type="unfinished"></translation>
+        <translation>聚焦上方的窗口</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Focus the window below</source>
-        <translation type="unfinished"></translation>
+        <translation>聚焦下方的窗口</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Focus the window to the left</source>
-        <translation type="unfinished"></translation>
+        <translation>聚焦左侧的窗口</translation>
     </message>
     <message>
         <location line="+11"/>
         <source>Focus the window to the right</source>
-        <translation type="unfinished"></translation>
+        <translation>聚焦右侧的窗口</translation>
     </message>
     <message>
         <location line="+11"/>

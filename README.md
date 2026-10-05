@@ -46,21 +46,49 @@ bash ./uninstall.sh
 
 ## Keybinds
 
+### Caelestia actions
+
+Rebindable in Nexus → Shortcuts, or edit `~/.config/caelestia/keybinds.json`
+(takes effect on shell restart).
+
 | Shortcut | Action |
 | --- | --- |
-| `Super` | App launcher |
-| `Super + /` | Keybind cheatsheet |
-| `Super + Enter` | Terminal |
-| `Super + Tab` | Overview |
-| `Super + 1-5` | Switch workspace |
+| `Super` / `Super + Space` | App launcher |
+| `Super + A` | Overview |
 | `Super + B` | Notification sidebar |
 | `Super + V` | Clipboard history |
-| `Super + Shift + S` | Screenshot |
-| `Super + Shift + A` | Google Lens |
-| `Super + Shift + D` | Text recognition |
-| `Super + Ctrl + S` | Screen recorder |
-| `Super + Shift + C` | Color picker |
 | `Super + Shift + V` | Emoji selector |
+| `Super + Shift + S` | Screenshot (region selector) |
+| `Super + Ctrl + S` | Screen recorder |
+| `Super + Ctrl + T` | Wallpaper picker |
+| `Super + Shift + A` | Google Lens |
+| `Super + Shift + C` | Colour picker (KWin built-in) |
+| `Super + Alt + E` | File manager (Dolphin) |
+| `Super + Enter` | Terminal (the configured one, kitty by default) |
+| `Super + /` | Keybind cheatsheet |
+| `Alt + Tab` / `Super + Tab` | Window switcher (`Alt + Shift + Tab` reverses) |
+| `Super + 1` … `Super + 9`, `Super + 0` | Switch to workspace 1–10 |
+| `Ctrl + Alt + Delete` | Session menu (logout / reboot / power off) |
+
+Removed dead bindings: `Super + W` (Firefox), `Super + C` (Code), `Super + G`
+(GitHub Desktop), `Super + Alt + E` now opens Dolphin instead of Nemo.
+`Super + Shift + D` (OCR) stays defined but unbound - press it from the
+launcher action list instead.
+
+### KWin / window management
+
+Bound through KGlobalAccel; re-run `caelestia-fix-shortcuts` to reapply.
+
+| Shortcut | Action |
+| --- | --- |
+| `Super + D` | Show desktop with the genie animation (minimize/restore all) |
+| `Super + Shift + D` | Minimize the focused window |
+| `Super + PgDown` / `Super + PgUp` | Next / previous dynamic workspace (a new one is created past the last; empty ones are recycled) |
+| `Super + Shift + PgDown` / `PgUp` | Move **every** window of this workspace to the next / previous one and follow |
+| `Super + Ctrl + PgDown` / `PgUp` | Move only the focused window to the next / previous workspace |
+| `Super + F` | Maximize window |
+| `Super + Shift + F` | Toggle fullscreen |
+| `Super + Q` | Close window |
 
 ## Configuring
 

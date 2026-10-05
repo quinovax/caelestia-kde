@@ -309,19 +309,9 @@ Scope {
         onPressed: Launch.exec([...GlobalConfig.general.apps.terminal])
     }
     CustomShortcut {
-        name: "code"
-        description: qsTr("Launch Editor")
-        onPressed: Launch.exec(["code"])
-    }
-    CustomShortcut {
-        name: "github-desktop"
-        description: qsTr("Launch GitHub Desktop")
-        onPressed: Launch.exec(["github-desktop"])
-    }
-    CustomShortcut {
-        name: "nemo"
+        name: "filemanager"
         description: qsTr("Launch File Manager")
-        onPressed: Launch.exec(["nemo"])
+        onPressed: Launch.exec(["dolphin"])
     }
     CustomShortcut {
         name: "kcolorpicker"
