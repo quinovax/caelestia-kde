@@ -17,6 +17,16 @@ Scope {
     property string lastAction: ""
     readonly property bool hasFullscreen: false
 
+    // The key capture dialog blocks all global shortcuts while it is open. If
+    // the shell dies before it unblocks (crash, SIGTERM from a restart), the
+    // block survives inside kwin_wayland and every physical shortcut goes
+    // dead while the registry still looks perfectly fine. Clear it on every
+    // start so a leftover block can never outlive the dialog.
+    Process {
+        command: ["gdbus", "call", "--session", "--dest=org.kde.kglobalaccel", "--object-path=/kglobalaccel", "--method=org.kde.KGlobalAccel.blockGlobalShortcuts", "false"]
+        running: true
+    }
+
     Component.onCompleted: {
         let _ = KeybindsModel;
     }
