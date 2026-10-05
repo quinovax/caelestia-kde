@@ -83,15 +83,67 @@ Item {
     }
 
     function renameIcon(oldPath: string, newName: string): void {
-        const idx = Math.max(oldPath.lastIndexOf("/"), 0);
-        const dir = oldPath.substring(0, idx);
         const trimmed = newName.trim();
-        if (trimmed.length === 0 || trimmed === oldPath.substring(idx + 1))
+        if (trimmed.length === 0)
             return;
         // Stay inside the desktop folder: no separators, no relative walks.
         if (trimmed === "." || trimmed === ".." || trimmed.includes("/"))
             return;
+
+        const isShortcut = oldPath.toLowerCase().endsWith(".desktop");
+        if (isShortcut) {
+            // A shortcut shows the Name of its .desktop file, so a rename has to
+            // change that key - renaming the file would not change the label.
+            const script = [
+                "import sys",
+                "p, name = sys.argv[1], sys.argv[2]",
+                "lines = open(p, encoding='utf-8').read().splitlines()",
+                "out, done = [], []",
+                "for line in lines:",
+                "    if line.startswith('Name[zh_CN]='):",
+                "        out.append('Name[zh_CN]=' + name)",
+                "        done.append('zh')",
+                "    elif line.startswith('Name='):",
+                "        out.append('Name=' + name)",
+                "        done.append('plain')",
+                "    else:",
+                "        out.append(line)",
+                "if not done:",
+                "    out.append('Name=' + name)",
+                "open(p, 'w', encoding='utf-8').write('\\n'.join(out) + '\\n')"
+            ].join("\n");
+            runFileOp(["python3", "-c", script, oldPath, trimmed]);
+            return;
+        }
+
+        const idx = Math.max(oldPath.lastIndexOf("/"), 0);
+        const dir = oldPath.substring(0, idx);
+        if (trimmed === oldPath.substring(idx + 1))
+            return;
         runFileOp(["kioclient", "move", oldPath, dir + "/" + trimmed]);
+    }
+
+    /// Re-read every delegate (used after a rename, so the new label shows up
+    /// without waiting for the desktop model to change).
+    function reloadAllInfo(): void {
+        for (let i = 0; i < instantiator.count; i++)
+            reloadInfo(instantiator.objectAt(i));
+    }
+
+    /// Re-read everything that is parsed out of a shortcut file.
+    function reloadInfo(item: var): void {
+        if (!item)
+            return;
+        if (item.isDesktopFile) {
+            item.desktopIcon = "";
+            item.desktopComment = "";
+            item.desktopExec = "";
+            item.desktopType = "";
+            item.startDesktopInfo();
+        } else {
+            item.desktopLinkTarget = "";
+            item.startDesktopMeta();
+        }
     }
 
     function showDetails(item: var): void {
@@ -176,6 +228,8 @@ Item {
                 Toaster.toast(qsTr("File operation failed"),
                     fileOpProc.errorText.length > 0 ? fileOpProc.errorText : qsTr("kioclient could not complete the request"),
                     "error");
+            else
+                root.reloadAllInfo();
             fileOpProc.errorText = "";
         }
     }
@@ -303,7 +357,9 @@ Item {
                         root.renamingDelegate.cancelRename();
                     root.renamingDelegate = delegateItem;
                     renaming = true;
-                    renameField.text = renameBase;
+                    // Pre-fill the name shown on the desktop, which for a
+                    // shortcut is its Name key rather than the file name.
+                    renameField.text = isDesktopFile ? (desktopName || renameBase) : fileName;
                     renameField.selectAll();
                     renameField.forceActiveFocus();
                 }
@@ -311,13 +367,13 @@ Item {
                 function commitRename(): void {
                     if (!renaming)
                         return;
-                    let target = renameField.text.trim();
+                    const target = renameField.text.trim();
                     renaming = false;
                     if (root.renamingDelegate === delegateItem)
                         root.renamingDelegate = null;
-                    // A shortcut stays a shortcut: never drop the extension.
-                    if (isDesktopFile && target.length > 0 && !target.toLowerCase().endsWith(".desktop"))
-                        target += ".desktop";
+                    // Shortcuts keep their file name; renameIcon() rewrites the
+                    // Name key of the .desktop file instead, so the label on the
+                    // desktop changes. File/folder links really are renamed.
                     root.renameIcon(path, target);
                 }
 
@@ -406,19 +462,40 @@ Item {
                 y: row * root.cellHeight + (dragHandler.active ? dragHandler.translation.y : 0)
                 z: dragHandler.active ? 10 : 1
 
+                function startDesktopInfo(): void {
+                    desktopInfoProc.running = true;
+                }
+
+                function startDesktopMeta(): void {
+                    desktopMetaProc.running = true;
+                }
+
                 Component.onCompleted: {
                     if (root.layoutLoaded)
                         initPosition();
-                    if (isDesktopFile)
-                        desktopInfoProc.running = true;
-                    else
-                        desktopMetaProc.running = true;
+                    desktopName = fileName;
+                    root.reloadInfo(delegateItem);
+                }
+
+                Connections {
+                    function onSaved(): void {
+                        if (ShortcutDetails.path === delegateItem.path)
+                            root.reloadInfo(delegateItem);
+                    }
+
+                    target: ShortcutDetails
                 }
 
                 Component.onDestruction: {
                     if (root.renamingDelegate === delegateItem)
                         root.renamingDelegate = null;
                 }
+
+                // The Instantiator recycles delegates when the desktop model
+                // changes, so everything parsed from the file has to be redone
+                // for the new file - otherwise a recycled delegate keeps showing
+                // the previous shortcut's icon and name.
+                onPathChanged: root.reloadInfo(delegateItem)
 
                 Process {
                     id: desktopMetaProc
@@ -445,6 +522,12 @@ Item {
                         onStreamFinished: {
                             var lines = text.trim().split("\n");
                             var inDesktopEntry = false;
+                            var plainName = "";
+                            var localisedName = "";
+                            var icon = "";
+                            var comment = "";
+                            var exec = "";
+                            var type = "";
                             for (var i = 0; i < lines.length; i++) {
                                 var line = lines[i].trim();
                                 if (line === "[Desktop Entry]") {
@@ -457,17 +540,28 @@ Item {
                                 if (!inDesktopEntry)
                                     continue;
 
-                                if (line.startsWith("Name="))
-                                    desktopName = line.substring(5);
+                                // The file's own Name wins over the installed
+                                // entry, so renaming a shortcut is visible.
+                                if (line.startsWith("Name[zh_CN]="))
+                                    localisedName = line.substring(13);
+                                else if (line.startsWith("Name="))
+                                    plainName = line.substring(5);
                                 else if (line.startsWith("Icon="))
-                                    desktopIcon = line.substring(5);
-                                else if (line.startsWith("Comment="))
-                                    desktopComment = line.substring(8);
+                                    icon = line.substring(5);
+                                else if (line.startsWith("Comment[zh_CN]="))
+                                    comment = line.substring(16);
+                                else if (line.startsWith("Comment=") && comment === "")
+                                    comment = line.substring(8);
                                 else if (line.startsWith("Exec="))
-                                    desktopExec = line.substring(5);
+                                    exec = line.substring(5);
                                 else if (line.startsWith("Type="))
-                                    desktopType = line.substring(5);
+                                    type = line.substring(5);
                             }
+                            delegateItem.desktopName = localisedName !== "" ? localisedName : (plainName !== "" ? plainName : delegateItem.fileName);
+                            delegateItem.desktopIcon = icon;
+                            delegateItem.desktopComment = comment;
+                            delegateItem.desktopExec = exec;
+                            delegateItem.desktopType = type;
                         }
                     }
                 }
@@ -530,11 +624,9 @@ Item {
                         lineHeightMode: Text.FixedHeight
                         Layout.preferredHeight: lineHeight * 2
                         verticalAlignment: Text.AlignTop
-                        text: {
-                            if (delegateItem.fileName.toLowerCase().endsWith(".desktop"))
-                                return delegateItem.desktopEntry?.name || delegateItem.desktopName;
-                            return delegateItem.fileName;
-                        }
+                        text: delegateItem.isDesktopFile
+                            ? (delegateItem.desktopName || delegateItem.desktopEntry?.name || delegateItem.fileName)
+                            : delegateItem.fileName
                         color: Colours.palette.m3onSurface
                         font: Tokens.font.body.small
                         horizontalAlignment: Text.AlignHCenter

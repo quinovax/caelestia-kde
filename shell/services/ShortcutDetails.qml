@@ -55,19 +55,50 @@ Singleton {
         opProc.running = true;
     }
 
-    /// Rename the shortcut itself (the file name on the desktop).
+    /// Rename what the desktop shows. For an application shortcut that is the
+    /// Name key inside the .desktop file (renaming the file itself would not
+    /// change the label); for a file/folder link it is the file name.
     function rename(newName: string): void {
         const trimmed = (newName ?? "").trim();
-        if (trimmed.length === 0 || trimmed === root.fileName)
+        if (trimmed.length === 0)
             return;
         if (trimmed === "." || trimmed === ".." || trimmed.includes("/")) {
             root.errorText = qsTr("Invalid name");
             return;
         }
+
+        if (root.kind === "application") {
+            const script = [
+                "import sys",
+                "p, name = sys.argv[1], sys.argv[2]",
+                "lines = open(p, encoding='utf-8').read().splitlines()",
+                "out, done = [], []",
+                "for line in lines:",
+                "    if line.startswith('Name[zh_CN]='):",
+                "        out.append('Name[zh_CN]=' + name)",
+                "        done.append('zh')",
+                "    elif line.startswith('Name='):",
+                "        out.append('Name=' + name)",
+                "        done.append('plain')",
+                "    else:",
+                "        out.append(line)",
+                "if not done:",
+                "    out.append('Name=' + name)",
+                "open(p, 'w', encoding='utf-8').write('\\n'.join(out) + '\\n')"
+            ].join("\n");
+            root.runProc(["python3", "-c", script, root.path, trimmed]);
+            root.entryName = trimmed;
+            return;
+        }
+
+        if (trimmed === root.fileName)
+            return;
         const idx = Math.max(root.path.lastIndexOf("/"), 0);
         const dir = root.path.substring(0, idx);
-        root.runProc(["kioclient", "move", root.path, dir + "/" + trimmed]);
+        const oldPath = root.path;
+        root.runProc(["kioclient", "move", oldPath, dir + "/" + trimmed]);
         root.fileName = trimmed;
+        root.path = dir + "/" + trimmed;
     }
 
     /// Change the Icon= key of a .desktop shortcut.

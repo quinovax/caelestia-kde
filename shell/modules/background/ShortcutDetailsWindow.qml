@@ -34,7 +34,7 @@ FloatingWindow {
 
     onVisibleChanged: {
         if (visible) {
-            nameField.text = details.isApp ? details.entryName : details.fileName;
+            nameField.text = details.isApp ? (details.entryName || details.fileName) : details.fileName;
             iconField.text = details.entryIcon;
             root.forceActiveFocus();
         }
@@ -189,8 +189,10 @@ FloatingWindow {
                     icon: "check"
                     text: qsTr("Save")
                     onClicked: {
+                        // For a shortcut this renames the displayed name, for a
+                        // file/folder link it renames the link itself.
                         const name = root.cleanedName();
-                        if (name.length > 0 && name !== details.fileName)
+                        if (name.length > 0)
                             details.rename(name);
                         if (root.isApp)
                             details.setIcon(iconField.text);
@@ -223,13 +225,9 @@ FloatingWindow {
         }
     }
 
-    /// The edited name, keeping the extension of the shortcut file.
+    /// The edited name. Application shortcuts keep showing their own name
+    /// (no ".desktop" suffix), only file/folder links carry an extension.
     function cleanedName(): string {
-        const raw = nameField.text.trim();
-        if (raw.length === 0)
-            return "";
-        if (details.kind === "application" && !raw.toLowerCase().endsWith(".desktop"))
-            return raw + ".desktop";
-        return raw;
+        return nameField.text.trim();
     }
 }

@@ -40,7 +40,29 @@ MouseArea {
     property bool transparentBackground: false
     /// Row under the pointer; the second level menu hangs off it.
     property Item hoveredRow: null
+    /// Row the open second level menu belongs to (kept while it is open so the
+    /// flyout does not jump when the pointer leaves the row for the flyout).
+    property Item submenuRow: null
     property MenuItem openSubmenu: null
+    property bool submenuHovered: false
+
+    function closeSubmenuSoon(): void {
+        submenuCloseTimer.restart();
+    }
+
+    Timer {
+        id: submenuCloseTimer
+
+        // Long enough to cross the gap between the row and the flyout.
+        interval: 350
+        repeat: false
+        onTriggered: {
+            if (!root.submenuHovered) {
+                root.openSubmenu = null;
+                root.submenuRow = null;
+            }
+        }
+    }
 
     signal itemSelected(item: MenuItem)
     signal rightClickedAt(real x, real y)
@@ -211,11 +233,14 @@ MouseArea {
                         StateLayer {
                             onContainsMouseChanged: {
                                 if (containsMouse) {
+                                    submenuCloseTimer.stop();
                                     root.hoveredRow = item;
-                                    root.openSubmenu = (item.modelData?.children?.length ?? 0) > 0 ? item.modelData : null;
+                                    const hasChildren = (item.modelData?.children?.length ?? 0) > 0;
+                                    root.openSubmenu = hasChildren ? item.modelData : null;
+                                    root.submenuRow = hasChildren ? item : null;
                                 } else if (root.hoveredRow === item) {
                                     root.hoveredRow = null;
-                                    root.openSubmenu = null;
+                                    root.closeSubmenuSoon();
                                 }
                             }
 
@@ -290,15 +315,15 @@ MouseArea {
         readonly property var entries: root.openSubmenu?.children ?? []
 
         x: {
-            if (!root.hoveredRow)
+            if (!root.submenuRow)
                 return 0;
-            const p = root.hoveredRow.mapToItem(root, root.hoveredRow.width - Tokens.padding.small, 0);
+            const p = root.submenuRow.mapToItem(root, root.submenuRow.width - Tokens.padding.small, 0);
             return p.x;
         }
         y: {
-            if (!root.hoveredRow)
+            if (!root.submenuRow)
                 return 0;
-            const p = root.hoveredRow.mapToItem(root, 0, 0);
+            const p = root.submenuRow.mapToItem(root, 0, 0);
             return p.y;
         }
 
@@ -321,6 +346,13 @@ MouseArea {
             anchors.fill: parent
             hoverEnabled: true
             onWheel: e => e.accepted = true
+            onContainsMouseChanged: {
+                root.submenuHovered = containsMouse;
+                if (containsMouse)
+                    submenuCloseTimer.stop();
+                else
+                    root.closeSubmenuSoon();
+            }
         }
 
         StyledRect {
@@ -368,6 +400,7 @@ MouseArea {
                             onClicked: {
                                 subRow.modelData.clicked();
                                 root.openSubmenu = null;
+                                root.submenuRow = null;
                                 root.expanded = false;
                             }
                         }
