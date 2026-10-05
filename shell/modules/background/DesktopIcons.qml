@@ -62,9 +62,23 @@ Item {
     }
 
     function findFreeCell(): var {
-        for (let r = 0; r < 1000; r++) {
-            for (let c = 0; c < getIconCols(); c++) {
-                if (isCellFree(c, r, null))
+        const cols = root.getIconCols();
+        const rows = Math.max(1, root.getIconRows());
+
+        // macOS order: a column fills top to bottom before the next one to its
+        // left gets used (column 0 is the rightmost column, see the delegate's
+        // x binding). The old row-major walk filled the top row first.
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows; r++) {
+                if (root.isCellFree(c, r, null))
+                    return { col: c, row: r };
+            }
+        }
+
+        // Every visible cell is taken: keep going in the rows below the grid.
+        for (let c = 0; c < cols; c++) {
+            for (let r = rows; r < rows + 100; r++) {
+                if (root.isCellFree(c, r, null))
                     return { col: c, row: r };
             }
         }
@@ -147,7 +161,7 @@ Item {
     function iconAt(x: real, y: real): bool {
         if (!visible)
             return false;
-        const c = Math.floor((x - gridItem.x) / root.cellWidth);
+        const c = root.getIconCols() - 1 - Math.floor((x - gridItem.x) / root.cellWidth);
         const r = Math.floor((y - gridItem.y) / root.cellHeight);
         for (let i = 0; i < instantiator.count; i++) {
             const item = instantiator.objectAt(i);
@@ -293,6 +307,13 @@ Item {
                 /// are followed so a script runs where it actually lives, not in
                 /// the folder the shortcut happens to sit in.
                 readonly property string scriptPath: desktopLinkTarget !== "" && desktopLinkTarget !== path ? desktopLinkTarget : path
+
+                /// Folder the script lives in; it is run from there.
+                readonly property string scriptDir: {
+                    const p = scriptPath;
+                    const idx = p.lastIndexOf("/");
+                    return idx > 0 ? p.substring(0, idx) : "";
+                }
 
                 /// A shortcut to a shell script opens in a terminal instead of
                 /// being handed to xdg-open. The link target is checked too: a
@@ -561,11 +582,16 @@ Item {
                         Launch.exec(custom.split(" "));
                         return;
                     }
-                    // Shell scripts are watched rather than run silently: open
-                    // them in the configured terminal, which keeps the window
-                    // open afterwards.
+                    // Shell scripts are watched rather than run silently: they
+                    // run in the shell's own terminal tab, which keeps the output
+                    // visible. If that tab is turned off in the configuration,
+                    // fall back to the external terminal.
                     if (isShellScript) {
-                        Launch.exec([...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/run_script_in_terminal.sh`, scriptPath]);
+                        if (EmbeddedTerminal.available(screenData.name)) {
+                            EmbeddedTerminal.run(["sh", `${Quickshell.shellDir}/assets/run_script_in_terminal.sh`, scriptPath], scriptDir, screenData.name);
+                        } else {
+                            Launch.exec([...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/run_script_in_terminal.sh`, scriptPath]);
+                        }
                         return;
                     }
                     if (delegateItem.desktopEntry)
@@ -576,7 +602,10 @@ Item {
 
                 width: root.cellWidth
                 height: root.cellHeight
-                x: col * root.cellWidth + (dragHandler.active ? dragHandler.translation.x : 0)
+                // macOS layout: column 0 is the rightmost column, so the first
+                // icon sits in the top right corner and a column fills downwards
+                // before the next one starts to its left.
+                x: (root.getIconCols() - 1 - col) * root.cellWidth + (dragHandler.active ? dragHandler.translation.x : 0)
                 y: row * root.cellHeight + (dragHandler.active ? dragHandler.translation.y : 0)
                 z: dragHandler.active ? 10 : 1
 
@@ -823,9 +852,9 @@ Item {
                     }
                     onActiveChanged: {
                         if (!active) {
-                            let dropX = col * root.cellWidth + lastTranslationX + delegateItem.width / 2;
+                            let dropX = (root.getIconCols() - 1 - col) * root.cellWidth + lastTranslationX + delegateItem.width / 2;
                             let dropY = row * root.cellHeight + lastTranslationY + delegateItem.height / 2;
-                            let newCol = Math.floor(dropX / root.cellWidth);
+                            let newCol = root.getIconCols() - 1 - Math.floor(dropX / root.cellWidth);
                             let newRow = Math.floor(dropY / root.cellHeight);
 
                             newCol = Math.max(0, Math.min(newCol, root.getIconCols() - 1));

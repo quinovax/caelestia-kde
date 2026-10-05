@@ -11,6 +11,58 @@ import qs.utils
 Searcher {
     id: root
 
+    /// Action names and descriptions come from the launcher config file, so they
+    /// never appear as qsTr() literals at the call site - and whatever lupdate
+    /// cannot see is dropped from the translation source on the next update,
+    /// which silently turned this list back into English once. Listing them here
+    /// keeps them extractable, and the table doubles as the runtime lookup.
+    readonly property var strings: ({
+            "Unnamed": qsTr("Unnamed"),
+            "No description": qsTr("No description"),
+            "Calculator": qsTr("Calculator"),
+            "Scheme": qsTr("Scheme"),
+            "Wallpaper": qsTr("Wallpaper"),
+            "Variant": qsTr("Variant"),
+            "Random": qsTr("Random"),
+            "Light": qsTr("Light"),
+            "Dark": qsTr("Dark"),
+            "Shutdown": qsTr("Shutdown"),
+            "Reboot": qsTr("Reboot"),
+            "Logout": qsTr("Logout"),
+            "Lock": qsTr("Lock"),
+            "Sleep": qsTr("Sleep"),
+            "Settings": qsTr("Settings"),
+            "What's New": qsTr("What's New"),
+            "Emoji": qsTr("Emoji"),
+            "Clipboard": qsTr("Clipboard"),
+            "Windows": qsTr("Windows"),
+            "Keybinds": qsTr("Keybinds"),
+            "Animations": qsTr("Animations"),
+            "Do simple math equations (powered by Qalc)": qsTr("Do simple math equations (powered by Qalc)"),
+            "Change the current color scheme": qsTr("Change the current color scheme"),
+            "Change the current wallpaper": qsTr("Change the current wallpaper"),
+            "Change the current scheme variant": qsTr("Change the current scheme variant"),
+            "Switch to a random wallpaper": qsTr("Switch to a random wallpaper"),
+            "Change the scheme to light mode": qsTr("Change the scheme to light mode"),
+            "Change the scheme to dark mode": qsTr("Change the scheme to dark mode"),
+            "Shutdown the system": qsTr("Shutdown the system"),
+            "Reboot the system": qsTr("Reboot the system"),
+            "Log out of the current session": qsTr("Log out of the current session"),
+            "Lock the current session": qsTr("Lock the current session"),
+            "Suspend then hibernate": qsTr("Suspend then hibernate"),
+            "Configure the shell": qsTr("Configure the shell"),
+            "Read the Caelestia release notes": qsTr("Read the Caelestia release notes"),
+            "Pick an emoji to copy": qsTr("Pick an emoji to copy"),
+            "View clipboard history": qsTr("View clipboard history"),
+            "Switch to another window": qsTr("Switch to another window"),
+            "View all keybinds": qsTr("View all keybinds"),
+            "Switch your animation style": qsTr("Switch your animation style")
+        })
+
+    function tr(text: string): string {
+        return root.strings[text] ?? text;
+    }
+
     function transformSearch(search: string): string {
         return search.slice(GlobalConfig.launcher.actionPrefix.length);
     }
@@ -31,8 +83,8 @@ Searcher {
 
     component Action: QtObject {
         required property var modelData
-        readonly property string name: qsTr(modelData.name ?? "Unnamed")
-        readonly property string desc: qsTr(modelData.description ?? "No description")
+        readonly property string name: root.tr(modelData.name ?? "Unnamed")
+        readonly property string desc: root.tr(modelData.description ?? "No description")
         readonly property string icon: modelData.icon ?? "help_outline"
         readonly property list<string> command: modelData.command ?? []
         readonly property bool enabled: modelData.enabled ?? true

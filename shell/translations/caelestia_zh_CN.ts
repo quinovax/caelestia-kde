@@ -90,6 +90,209 @@
     </message>
 </context>
 <context>
+    <name>Actions</name>
+    <message>
+        <location filename="../modules/launcher/services/Actions.qml" line="+20"/>
+        <source>Unnamed</source>
+        <translation>未命名</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No description</source>
+        <translation>无描述</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Calculator</source>
+        <translation>计算器</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Scheme</source>
+        <translation>配色方案</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Wallpaper</source>
+        <translation>壁纸</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Variant</source>
+        <translation>配色变体</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Random</source>
+        <translation>随机</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Light</source>
+        <translation>浅色</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dark</source>
+        <translation>深色</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shutdown</source>
+        <translation>关机</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reboot</source>
+        <translation>重启</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Logout</source>
+        <translation>注销</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Lock</source>
+        <translation>锁定</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Sleep</source>
+        <translation>睡眠</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Settings</source>
+        <translation>设置</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>What&apos;s New</source>
+        <translation>新功能</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Emoji</source>
+        <translation>表情</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clipboard</source>
+        <translation>剪贴板</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Windows</source>
+        <translation>窗口</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Keybinds</source>
+        <translation>快捷键</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Animations</source>
+        <translation>动画</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Do simple math equations (powered by Qalc)</source>
+        <translation>做简单的数学计算（由 Qalc 提供）</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Change the current color scheme</source>
+        <translation>更改当前配色方案</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Change the current wallpaper</source>
+        <translation>更改当前壁纸</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Change the current scheme variant</source>
+        <translation>更改当前配色变体</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Switch to a random wallpaper</source>
+        <translation>切换到随机壁纸</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Change the scheme to light mode</source>
+        <translation>切换为浅色模式</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Change the scheme to dark mode</source>
+        <translation>切换为深色模式</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shutdown the system</source>
+        <translation>关闭系统</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reboot the system</source>
+        <translation>重新启动系统</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Log out of the current session</source>
+        <translation>注销当前会话</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Lock the current session</source>
+        <translation>锁定当前会话</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Suspend then hibernate</source>
+        <translation>挂起后休眠</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Configure the shell</source>
+        <translation>配置 shell</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Read the Caelestia release notes</source>
+        <translation>查看 Caelestia 更新日志</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Pick an emoji to copy</source>
+        <translation>选择要复制的表情</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>View clipboard history</source>
+        <translation>查看剪贴板历史</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Switch to another window</source>
+        <translation>切换到其他窗口</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>View all keybinds</source>
+        <translation>查看所有快捷键</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Switch your animation style</source>
+        <translation>切换动画风格</translation>
+    </message>
+</context>
+<context>
     <name>AddNetworkPage</name>
     <message>
         <location filename="../modules/nexus/pages/network/AddNetworkPage.qml" line="+66"/>
@@ -834,13 +1037,28 @@
     <message>
         <location filename="../modules/launcher/AppBrowser.qml" line="+213"/>
         <source>No apps in this category</source>
-        <translation>此类别没有应用</translation>
+        <translation>此分类下没有应用</translation>
     </message>
 </context>
 <context>
     <name>AppContextMenu</name>
     <message>
-        <location filename="../modules/launcher/items/AppContextMenu.qml" line="+56"/>
+        <location filename="../modules/launcher/items/AppContextMenu.qml" line="+76"/>
+        <source>Matched by a regex in favouriteApps - edit the config file to change</source>
+        <translation>由 favouriteApps 中的正则匹配，需修改请编辑配置文件</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Remove from favourites</source>
+        <translation>从收藏中移除</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Add to favourites</source>
+        <translation>添加到收藏</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <source>Unpin from dock</source>
         <translation>从 Dock 取消固定</translation>
     </message>
@@ -885,7 +1103,7 @@
     <message>
         <location line="+45"/>
         <source>Taskbar &amp; Dock</source>
-        <translation type="unfinished"></translation>
+        <translation>任务栏与 Dock</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -895,12 +1113,12 @@
     <message>
         <location line="+1"/>
         <source>Matched by a regex in pinnedApps - edit the config file to change</source>
-        <translation type="unfinished"></translation>
+        <translation>由 pinnedApps 中的正则匹配，需修改请编辑配置文件</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Show on the dock even when not running</source>
-        <translation type="unfinished"></translation>
+        <translation>未运行时也显示在 Dock 上</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -915,7 +1133,7 @@
     <message>
         <location line="+1"/>
         <source>Matched by a regex in favouriteApps - edit the config file to change</source>
-        <translation>由 favouriteApps 中的正则匹配——编辑配置文件以更改</translation>
+        <translation>由 favouriteApps 中的正则匹配，需修改请编辑配置文件</translation>
     </message>
     <message>
         <location line="+0"/>
@@ -966,7 +1184,7 @@
     <message>
         <location filename="../modules/launcher/items/AppTile.qml" line="+143"/>
         <source>Matched by a regex in favouriteApps - edit the config file to change</source>
-        <translation>由 favouriteApps 中的正则匹配——编辑配置文件以更改</translation>
+        <translation>由 favouriteApps 中的正则匹配，需修改请编辑配置文件</translation>
     </message>
 </context>
 <context>
@@ -11318,7 +11536,7 @@
     <message>
         <location line="-97"/>
         <source>What&apos;s New</source>
-        <translation type="unfinished"></translation>
+        <translation>新功能</translation>
     </message>
     <message>
         <location line="+421"/>

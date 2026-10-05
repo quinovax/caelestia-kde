@@ -31,6 +31,11 @@ Controls.Menu {
     }
 
     readonly property bool isPinnedToDock: app ? Strings.testRegexList(GlobalConfig.bar.dock.pinnedApps, app.id) : false
+    readonly property bool isFavourite: app ? Strings.testRegexList(GlobalConfig.launcher.favouriteApps, app.id) : false
+    /// Favourited by a pattern rather than by the app's own id: the toggle cannot
+    /// remove it, so the entry explains where to change it instead (the launcher
+    /// tile and the app info page follow the same rule).
+    readonly property bool favouriteByRegex: app && !((GlobalConfig.launcher.favouriteApps ?? []).includes(app.id)) && isFavourite
     readonly property bool isHidden: app ? Strings.testRegexList(GlobalConfig.launcher.hiddenApps, app.id) : false
     property bool isPinnedToDesktop: false
 
@@ -38,6 +43,21 @@ Controls.Menu {
         app = targetApp;
         attachTo = targetItem;
         expanded = true;
+    }
+
+    function toggleFavourite(): void {
+        const appId = root.app?.id;
+        if (!appId)
+            return;
+        const favApps = GlobalConfig.launcher.favouriteApps ? [...GlobalConfig.launcher.favouriteApps] : [];
+        if (Strings.testRegexList(favApps, appId)) {
+            const idx = favApps.indexOf(appId);
+            if (idx !== -1)
+                favApps.splice(idx, 1);
+        } else {
+            favApps.push(appId);
+        }
+        GlobalConfig.launcher.favouriteApps = favApps;
     }
 
     function checkDesktopPinned(): void {
@@ -52,6 +72,15 @@ Controls.Menu {
     thisSideY: _flipY ? Controls.Menu.Bottom : Controls.Menu.Top
 
     items: [
+        Controls.MenuItem {
+            text: root.favouriteByRegex ? qsTr("Matched by a regex in favouriteApps - edit the config file to change") : (root.isFavourite ? qsTr("Remove from favourites") : qsTr("Add to favourites"))
+            icon: root.isFavourite ? "favorite" : "favorite_border"
+            onClicked: {
+                if (root.favouriteByRegex)
+                    return;
+                root.toggleFavourite();
+            }
+        },
         Controls.MenuItem {
             text: root.isPinnedToDock ? qsTr("Unpin from dock") : qsTr("Pin to dock")
             icon: "push_pin"

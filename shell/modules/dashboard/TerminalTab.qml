@@ -186,6 +186,42 @@ Item {
         outputArea.text = "";
     }
 
+    /// The screen this dashboard belongs to, used to pick up the commands that
+    /// were queued for it (see EmbeddedTerminal).
+    readonly property string screenName: (QsWindow.window as QsWindow)?.screen?.name ?? ""
+
+    /// Run an argv directly. Queued jobs arrive as an argv array so nothing has
+    /// to be quoted and handed to a shell first.
+    function runArgv(argv: var, directory: string): void {
+        if (!argv || argv.length === 0)
+            return;
+        if (directory !== "" && directory !== currentDirectory)
+            currentDirectory = directory;
+
+        appendOutput((outputBuffer === "" ? "" : "\n") + "\x1b[36m" + prompt + "\x1b[0m\n\x1b[32m❯\x1b[0m " + argv.join(" "), false);
+
+        activeShellProcess = shellProcessComp.createObject(root, {
+            command: argv,
+            workingDirectory: currentDirectory,
+            running: true
+        });
+    }
+
+    /// Run everything that was queued for this terminal.
+    function drainQueue(): void {
+        let job = EmbeddedTerminal.take(root.screenName);
+        while (job !== null) {
+            if (job.argv.length === 1) {
+                // A plain command line (typed by the user or sent by a caller
+                // that only has a string): run it through the shell.
+                sendCommand(job.argv[0]);
+            } else {
+                runArgv(job.argv, job.directory);
+            }
+            job = EmbeddedTerminal.take(root.screenName);
+        }
+    }
+
     function sendCommand(text: string): void {
         const trimmed = text.trim();
         if (trimmed === "")
@@ -246,6 +282,15 @@ Item {
             command: ["cat", "/etc/hostname"],
             running: true
         });
+        root.drainQueue();
+    }
+
+    Connections {
+        function onRequested(): void {
+            root.drainQueue();
+        }
+
+        target: EmbeddedTerminal
     }
 
     Timer {
