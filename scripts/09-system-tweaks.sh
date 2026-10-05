@@ -126,6 +126,152 @@ tweak_no_splash_screen() {
     ok "Plasma splash screen disabled."
 }
 
+# ---------------------------------------------------------------------------
+# Caelestia and KWin preferences. The JSON assets hold the fork's defaults
+# (the values this setup runs with); they are merged over whatever the user
+# already has, so missing keys appear and existing ones match this setup.
+tweak_shell_prefs() {
+    local assets="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/scripts/assets"
+
+    if [[ -f "$assets/shell-prefs.json" ]]; then
+        python3 - "$assets/shell-prefs.json" <<'PYEOF'
+import json
+import os
+import sys
+
+prefs = json.load(open(sys.argv[1]))
+path = os.path.expanduser("~/.config/caelestia/shell.json")
+current = {}
+if os.path.exists(path):
+    current = json.load(open(path))
+
+def merge(base, override):
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            merge(base[key], value)
+        else:
+            base[key] = value
+
+def expand_strings(node):
+    # Values may carry "$HOME" (e.g. the tray icon cache path), including
+    # inside lists, so walk the whole merged tree before writing.
+    if isinstance(node, dict):
+        return {k: expand_strings(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [expand_strings(v) for v in node]
+    if isinstance(node, str):
+        return os.path.expandvars(os.path.expanduser(node))
+    return node
+
+json.dump(expand_strings(current), open(path, "w"), indent=4, ensure_ascii=False)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(current, open(path, "w"), indent=4, ensure_ascii=False)
+print("shell.json preferences merged.")
+PYEOF
+        ok "Caelestia shell preferences applied."
+    else
+        warn "scripts/assets/shell-prefs.json missing; shell preferences skipped."
+    fi
+
+    if [[ -f "$assets/keybinds-prefs.json" ]]; then
+        python3 - "$assets/keybinds-prefs.json" <<'PYEOF'
+import json
+import os
+import sys
+
+prefs = json.load(open(sys.argv[1]))
+path = os.path.expanduser("~/.config/caelestia/keybinds.json")
+current = {}
+if os.path.exists(path):
+    current = json.load(open(path))
+current.update(prefs)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(current, open(path, "w"), indent=4, ensure_ascii=False)
+print("keybinds.json preferences merged.")
+PYEOF
+        ok "Caelestia keybind preferences applied."
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# kde-material-you-colors: Plasma colour scheme generated from the wallpaper.
+# Installed into a user-level venv that reuses the distribution's prebuilt
+# python3-dbus / python3-pillow, because dbus-python has no wheel for new
+# CPython releases and building it needs -devel packages.
+tweak_material_you_colors() {
+    local venv="$HOME/.local/share/caelestia-venvs/kde-material-you-colors"
+    local bin="$HOME/.local/bin/kde-material-you-colors"
+
+    if ! python3 -c "import dbus" 2>/dev/null; then
+        warn "python3-dbus is missing; install it (dnf install python3-dbus python3-pillow) for kde-material-you-colors."
+        return
+    fi
+
+    if [[ ! -x "$bin" ]]; then
+        info "Installing kde-material-you-colors..."
+        python3 -m venv --system-site-packages "$venv" || { warn "venv creation failed."; return; }
+        "$venv/bin/pip" install -q --upgrade pip >/dev/null 2>&1 || true
+        "$venv/bin/pip" install -q kde-material-you-colors pywal16 || { warn "pip install failed."; return; }
+        ln -sfn "$venv/bin/kde-material-you-colors" "$bin"
+        ok "kde-material-you-colors installed."
+    fi
+
+    mkdir -p "$HOME/.config/autostart"
+    cat > "$HOME/.config/autostart/kde-material-you-colors.desktop" <<EOF
+[Desktop Entry]
+Categories=Utility;
+Comment=Automatic color scheme generator from wallpaper
+Exec=$bin --autostart
+GenericName=Color generator
+Icon=kde-material-you-colors
+Name=KDE Material You Colors
+StartupNotify=false
+Terminal=false
+Type=Application
+X-KDE-StartupNotify=false
+EOF
+    ok "kde-material-you-colors autostart installed."
+}
+
+# ---------------------------------------------------------------------------
+# Bibata cursor theme (Modern Classic variant), installed from upstream
+# releases into the user's icon directory and selected for KDE, GTK and
+# Xwayland fallback lookups.
+tweak_cursor_theme() {
+    local icons_dir="$HOME/.local/share/icons"
+    local target="Bibata-Modern-Classic"
+    local url="https://github.com/ful1e5/Bibata_Cursor/releases/latest/download/Bibata-Modern-Classic.tar.xz"
+
+    if [[ ! -d "$icons_dir/$target" ]]; then
+        if command -v curl >/dev/null 2>&1; then
+            local tmp
+            tmp="$(mktemp -d)"
+            if curl -sL -o "$tmp/bibata.tar.xz" "$url" 2>/dev/null; then
+                tar -xf "$tmp/bibata.tar.xz" -C "$tmp" 2>/dev/null
+                if [[ -d "$tmp/$target" ]]; then
+                    mkdir -p "$icons_dir"
+                    cp -r "$tmp/$target" "$icons_dir/"
+                    ok "Bibata cursor theme installed."
+                fi
+            fi
+            rm -rf "$tmp"
+        fi
+    fi
+
+    if [[ -d "$icons_dir/$target" ]]; then
+        kwriteconfig6 --file kdeglobals --group General --key CursorTheme "$target" 2>/dev/null || true
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set org.gnome.desktop.interface cursor-theme "$target" 2>/dev/null || true
+        fi
+        mkdir -p "$HOME/.icons/default"
+        printf "[Icon Theme]\nName=Default\nInherits=%s\n" "$target" > "$HOME/.icons/default/index.theme"
+        ok "Cursor theme set to $target."
+    else
+        warn "Could not install the Bibata cursor theme; keeping the current one."
+    fi
+}
+
+
 tweak_reload_kde() {
     info "Reloading KWin and plasma-kglobalaccel..."
     qdbus6 org.kde.KWin /KWin reconfigure 2>/dev/null || true
@@ -272,6 +418,10 @@ tweak_kwin_scripts_and_effects() {
     kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key rememberwindowpositionsEnabled true 2>/dev/null || true
+    # This setup's look: Caelestia draws its own blur, so KWin's is off.
+    kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key glassEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key krohnkiteEnabled false 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Effect-magiclamp --key AnimationDuration 300 2>/dev/null || true
 
     # xwaylandvideobridge shows up as a black blob on the desktop; the only
@@ -410,7 +560,10 @@ tweak_icon_theme() {
     fi
 }
 
+tweak_shell_prefs
+tweak_material_you_colors
 tweak_icon_theme
+tweak_cursor_theme
 tweak_reload_kde
 
 

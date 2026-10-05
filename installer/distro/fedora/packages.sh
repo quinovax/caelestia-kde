@@ -38,6 +38,8 @@ INSTALL_DARKLY="${INSTALL_DARKLY:-true}"
 PACKAGE_GROUP="${PACKAGE_GROUP:-all}"
 
 CORE_PACKAGES=(
+    python3-dbus
+    python3-pillow
     cmake ninja-build ccache qt6-qttools-devel extra-cmake-modules libgcc glibc
 
     wl-clipboard cliphist wl-clip-persist inotify-tools wireplumber trash-cli jq
