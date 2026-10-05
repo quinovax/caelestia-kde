@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Caelestia
 
 /// State and file operations behind the desktop shortcut details dialog.
 Singleton {
@@ -93,6 +94,28 @@ Singleton {
         pickProc.pendingField = kind;
         pickProc.command = ["caelestia-pick-path", kind];
         pickProc.running = true;
+    }
+
+    /// Move the shortcut to the trash and close the dialog.
+    function trash(): void {
+        if (root.path.length === 0)
+            return;
+        trashProc.command = ["kioclient", "move", root.path, "trash:/"];
+        trashProc.running = true;
+    }
+
+    Process {
+        id: trashProc
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                root.errorText = qsTr("Operation failed");
+                return;
+            }
+            ShortcutOverrides.clear(root.path);
+            Toaster.toast(qsTr("Moved to trash"), root.fileName, "delete");
+            root.close();
+        }
     }
 
     Process {

@@ -58,8 +58,18 @@ Singleton {
         root.changed();
     }
 
-    function save(): void {
-        writeProc.jsonContent = JSON.stringify(root.overrides);
+    /// Forget everything customised for a shortcut (used when it is deleted).
+    function clear(path: string): void {
+        if (path.length === 0 || !(path in root.overrides))
+            return;
+        const next = Object.assign({}, root.overrides);
+        delete next[path];
+        root.overrides = next;
+        root.save();
+        root.changed();
+    }
+
+    function save(): void {        writeProc.jsonContent = JSON.stringify(root.overrides);
         writeProc.running = true;
     }
 

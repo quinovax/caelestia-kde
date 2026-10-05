@@ -90,75 +90,6 @@
     </message>
 </context>
 <context>
-    <name>Actions</name>
-    <message>
-        <location filename="../modules/launcher/services/Actions.qml" line="+34"/>
-        <source>Unnamed</source>
-        <translation>未命名</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>No description</source>
-        <translation>无描述</translation>
-    </message>
-    <message>
-        <source>Calculator</source>
-        <translation>计算器</translation>
-    </message>
-    <message>
-        <source>Scheme</source>
-        <translation>配色方案</translation>
-    </message>
-    <message>
-        <source>Wallpaper</source>
-        <translation>壁纸</translation>
-    </message>
-    <message>
-        <source>Variant</source>
-        <translation>配色变体</translation>
-    </message>
-    <message>
-        <source>Random</source>
-        <translation>随机</translation>
-    </message>
-    <message>
-        <source>Light</source>
-        <translation>浅色</translation>
-    </message>
-    <message>
-        <source>Dark</source>
-        <translation>深色</translation>
-    </message>
-    <message>
-        <source>Do simple math equations (powered by Qalc)</source>
-        <translation>做简单的数学计算（由 Qalc 提供）</translation>
-    </message>
-    <message>
-        <source>Change the current color scheme</source>
-        <translation>更改当前配色方案</translation>
-    </message>
-    <message>
-        <source>Change the current wallpaper</source>
-        <translation>更改当前壁纸</translation>
-    </message>
-    <message>
-        <source>Change the current scheme variant</source>
-        <translation>更改当前配色变体</translation>
-    </message>
-    <message>
-        <source>Switch to a random wallpaper</source>
-        <translation>切换到随机壁纸</translation>
-    </message>
-    <message>
-        <source>Change the scheme to light mode</source>
-        <translation>切换为浅色模式</translation>
-    </message>
-    <message>
-        <source>Change the scheme to dark mode</source>
-        <translation>切换为深色模式</translation>
-    </message>
-</context>
-<context>
     <name>AddNetworkPage</name>
     <message>
         <location filename="../modules/nexus/pages/network/AddNetworkPage.qml" line="+66"/>
@@ -4059,7 +3990,7 @@
 <context>
     <name>DesktopIcons</name>
     <message>
-        <location filename="../modules/background/DesktopIcons.qml" line="+176"/>
+        <location filename="../modules/background/DesktopIcons.qml" line="+208"/>
         <source>File operation failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -8791,20 +8722,26 @@
 <context>
     <name>ShortcutDetails</name>
     <message>
-        <location filename="../services/ShortcutDetails.qml" line="+64"/>
+        <location filename="../services/ShortcutDetails.qml" line="+68"/>
         <source>Invalid name</source>
         <translation>名称无效</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+44"/>
+        <location line="+33"/>
         <source>Operation failed</source>
         <translation>操作失败</translation>
+    </message>
+    <message>
+        <location line="-29"/>
+        <source>Moved to trash</source>
+        <translation>已移到回收站</translation>
     </message>
 </context>
 <context>
     <name>ShortcutDetailsWindow</name>
     <message>
-        <location filename="../modules/background/ShortcutDetailsWindow.qml" line="+23"/>
+        <location filename="../modules/background/ShortcutDetailsWindow.qml" line="+39"/>
         <source>Application shortcut</source>
         <translation>应用快捷方式</translation>
     </message>
@@ -8824,7 +8761,7 @@
         <translation>快捷方式详情</translation>
     </message>
     <message>
-        <location line="+84"/>
+        <location line="+134"/>
         <source>Location</source>
         <translation>位置</translation>
     </message>
@@ -8850,11 +8787,12 @@
     </message>
     <message>
         <location line="+2"/>
+        <location line="+71"/>
         <source>Command</source>
         <translation>命令</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-69"/>
         <source>Comment</source>
         <translation>注释</translation>
     </message>
@@ -8869,7 +8807,7 @@
         <translation>快捷方式名称</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>Icon</source>
         <translation>图标</translation>
     </message>
@@ -8880,11 +8818,16 @@
     </message>
     <message>
         <location line="+20"/>
+        <source>Command the shortcut runs</source>
+        <translation>快捷方式运行的命令</translation>
+    </message>
+    <message>
+        <location line="+26"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
         <source>Move to Trash</source>
         <translation>移到回收站</translation>
     </message>
