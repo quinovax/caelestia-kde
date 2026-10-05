@@ -46,21 +46,12 @@ MouseArea {
     property MenuItem openSubmenu: null
     property bool submenuHovered: false
 
-    function closeSubmenuSoon(): void {
-        submenuCloseTimer.restart();
-    }
-
-    Timer {
-        id: submenuCloseTimer
-
-        // Long enough to cross the gap between the row and the flyout.
-        interval: 350
-        repeat: false
-        onTriggered: {
-            if (!root.submenuHovered) {
-                root.openSubmenu = null;
-                root.submenuRow = null;
-            }
+    /// The second level menu stays open until the pointer hovers another row or
+    /// the menu closes. An auto-close delay made it impossible to reach.
+    function closeSubmenu(): void {
+        if (!root.submenuHovered) {
+            root.openSubmenu = null;
+            root.submenuRow = null;
         }
     }
 
@@ -233,14 +224,12 @@ MouseArea {
                         StateLayer {
                             onContainsMouseChanged: {
                                 if (containsMouse) {
-                                    submenuCloseTimer.stop();
                                     root.hoveredRow = item;
                                     const hasChildren = (item.modelData?.children?.length ?? 0) > 0;
                                     root.openSubmenu = hasChildren ? item.modelData : null;
                                     root.submenuRow = hasChildren ? item : null;
                                 } else if (root.hoveredRow === item) {
                                     root.hoveredRow = null;
-                                    root.closeSubmenuSoon();
                                 }
                             }
 
@@ -346,13 +335,7 @@ MouseArea {
             anchors.fill: parent
             hoverEnabled: true
             onWheel: e => e.accepted = true
-            onContainsMouseChanged: {
-                root.submenuHovered = containsMouse;
-                if (containsMouse)
-                    submenuCloseTimer.stop();
-                else
-                    root.closeSubmenuSoon();
-            }
+            onContainsMouseChanged: root.submenuHovered = containsMouse
         }
 
         StyledRect {

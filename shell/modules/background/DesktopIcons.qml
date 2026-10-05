@@ -86,33 +86,14 @@ Item {
         const trimmed = newName.trim();
         if (trimmed.length === 0)
             return;
-        // Stay inside the desktop folder: no separators, no relative walks.
         if (trimmed === "." || trimmed === ".." || trimmed.includes("/"))
             return;
 
-        const isShortcut = oldPath.toLowerCase().endsWith(".desktop");
-        if (isShortcut) {
-            // A shortcut shows the Name of its .desktop file, so a rename has to
-            // change that key - renaming the file would not change the label.
-            const script = [
-                "import sys",
-                "p, name = sys.argv[1], sys.argv[2]",
-                "lines = open(p, encoding='utf-8').read().splitlines()",
-                "out, done = [], []",
-                "for line in lines:",
-                "    if line.startswith('Name[zh_CN]='):",
-                "        out.append('Name[zh_CN]=' + name)",
-                "        done.append('zh')",
-                "    elif line.startswith('Name='):",
-                "        out.append('Name=' + name)",
-                "        done.append('plain')",
-                "    else:",
-                "        out.append(line)",
-                "if not done:",
-                "    out.append('Name=' + name)",
-                "open(p, 'w', encoding='utf-8').write('\\n'.join(out) + '\\n')"
-            ].join("\n");
-            runFileOp(["python3", "-c", script, oldPath, trimmed]);
+        if (oldPath.toLowerCase().endsWith(".desktop")) {
+            // Shortcuts show a name of their own, and the file itself is often a
+            // symlink into a root owned directory, so the custom name is kept in
+            // the overrides store instead of being written into the file.
+            ShortcutOverrides.set(oldPath, "name", trimmed);
             return;
         }
 
@@ -139,11 +120,10 @@ Item {
             item.desktopComment = "";
             item.desktopExec = "";
             item.desktopType = "";
-            item.startDesktopInfo();
         } else {
             item.desktopLinkTarget = "";
-            item.startDesktopMeta();
         }
+        item.reloadFromFile();
     }
 
     function showDetails(item: var): void {
@@ -305,6 +285,9 @@ Item {
                 property bool renaming: false
 
                 readonly property bool isDesktopFile: fileName.toLowerCase().endsWith(".desktop")
+
+                /// Name / icon / command customised through the details dialog.
+                readonly property var override: ShortcutOverrides.overrides[path] ?? null
                 // Only the base name is edited: ".desktop" is an implementation
                 // detail of the shortcut and would otherwise eat the whole
                 // 100px-wide editor ("xxx.desktop" only ever showed "esktop").
@@ -438,9 +421,14 @@ Item {
                     return "text-x-generic";
                 }
 
-                /// Full-colour artwork, used when Material You icons are off or
-                /// when no glyph could be produced for this entry.
+                /// Full-colour artwork for this entry (an override wins).
                 function getIconSource(isDir: bool, filename: string, suffix: string): string {
+                    const custom = override?.icon ?? "";
+                    if (custom !== "") {
+                        if (custom.startsWith("/"))
+                            return "file://" + custom;
+                        return Quickshell.iconPath(custom, "application-x-executable");
+                    }
                     if (isDesktopFile && rawIconValue !== "") {
                         if (rawIconValue.startsWith("/"))
                             return "file://" + rawIconValue;
@@ -449,7 +437,96 @@ Item {
                     return "image://icon/" + getIconName(isDir, filename, suffix);
                 }
 
+                /// Material You mode for folders and files: just the shape, in
+                /// the palette colour and without an application style tile.
+                readonly property bool useMonoFileIcon: useMaterialYouIcons && !isDesktopFile
+
+                /// Material Symbols glyph for this entry (M3 icon language).
+                readonly property string monoFileGlyph: {
+                    if (fileIsDir)
+                        return "folder";
+                    const ext = fileSuffix.toLowerCase();
+                    const groups = {
+                        image: ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "avif"],
+                        movie: ["mp4", "mkv", "webm", "avi", "mov", "m4v"],
+                        music_note: ["mp3", "wav", "flac", "ogg", "m4a", "opus"],
+                        folder_zip: ["zip", "tar", "gz", "xz", "rar", "7z", "zst"],
+                        picture_as_pdf: ["pdf"],
+                        description: ["txt", "md", "log", "json", "yml", "yaml", "toml", "ini", "conf"],
+                        code: ["qml", "js", "mjs", "ts", "py", "sh", "c", "h", "cpp", "hpp", "rs", "go", "java", "css", "html"]
+                    };
+                    for (const glyph in groups) {
+                        if (groups[glyph].includes(ext))
+                            return glyph;
+                    }
+                    return "draft";
+                }
+
+                /// Parse the Name / Icon / Comment / Exec / Type keys of a
+                /// .desktop file. Kept as a plain function so it runs on the
+                /// whole file text.
+                function parseDesktopFile(content: string): void {
+                    if (!content)
+                        return;
+                    const lines = content.split("\n");
+                    let inEntry = false;
+                    let plainName = "";
+                    let localisedName = "";
+                    let icon = "";
+                    let comment = "";
+                    let exec = "";
+                    let type = "";
+
+                    // Values are taken after the "=" instead of with a hard coded
+                    // offset: "Name[zh_CN]=" is 12 characters, not 13, and the
+                    // off-by-one silently ate the first character of every
+                    // localised name (Bazaar -> "azaar", 星火应用商店 -> "火应用商店").
+                    function valueOf(line: string): string {
+                        return line.substring(line.indexOf("=") + 1);
+                    }
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line === "[Desktop Entry]") {
+                            inEntry = true;
+                            continue;
+                        }
+                        if (line.startsWith("[")) {
+                            inEntry = false;
+                            continue;
+                        }
+                        if (!inEntry || line.length === 0)
+                            continue;
+
+                        if (line.startsWith("Name[zh_CN]="))
+                            localisedName = valueOf(line);
+                        else if (line.startsWith("Name="))
+                            plainName = valueOf(line);
+                        else if (line.startsWith("Icon="))
+                            icon = valueOf(line);
+                        else if (line.startsWith("Comment[zh_CN]="))
+                            comment = valueOf(line);
+                        else if (line.startsWith("Comment=") && comment === "")
+                            comment = valueOf(line);
+                        else if (line.startsWith("Exec="))
+                            exec = valueOf(line);
+                        else if (line.startsWith("Type="))
+                            type = valueOf(line);
+                    }
+
+                    desktopName = localisedName !== "" ? localisedName : (plainName !== "" ? plainName : fileName);
+                    desktopIcon = icon;
+                    desktopComment = comment;
+                    desktopExec = exec;
+                    desktopType = type;
+                }
+
                 function launch(): void {
+                    const custom = override?.exec ?? "";
+                    if (custom !== "") {
+                        Launch.exec(custom.split(" "));
+                        return;
+                    }
                     if (delegateItem.desktopEntry)
                         Launch.launchEntry(delegateItem.desktopEntry);
                     else
@@ -462,12 +539,11 @@ Item {
                 y: row * root.cellHeight + (dragHandler.active ? dragHandler.translation.y : 0)
                 z: dragHandler.active ? 10 : 1
 
-                function startDesktopInfo(): void {
-                    desktopInfoProc.running = true;
-                }
-
-                function startDesktopMeta(): void {
-                    desktopMetaProc.running = true;
+                function reloadFromFile(): void {
+                    if (isDesktopFile)
+                        parseDesktopFile(desktopFile.text());
+                    else
+                        desktopMetaProc.running = true;
                 }
 
                 Component.onCompleted: {
@@ -505,6 +581,10 @@ Item {
                     command: ["sh", "-c", "readlink -f -- \"$1\"; if [ -x \"$1\" ]; then echo yes; else echo no; fi", "--", path]
                     stdout: StdioCollector {
                         onStreamFinished: {
+                            // Only trust a complete two-line answer; a partial
+                            // chunk would give a mangled path.
+                            if (!text.endsWith("\n"))
+                                return;
                             const lines = text.trim().split("\n");
                             if (lines.length > 0)
                                 delegateItem.desktopLinkTarget = lines[0];
@@ -514,57 +594,21 @@ Item {
                     }
                 }
 
-                Process {
-                    id: desktopInfoProc
 
-                    command: ["cat", path]
-                    stdout: StdioCollector {
-                        onStreamFinished: {
-                            var lines = text.trim().split("\n");
-                            var inDesktopEntry = false;
-                            var plainName = "";
-                            var localisedName = "";
-                            var icon = "";
-                            var comment = "";
-                            var exec = "";
-                            var type = "";
-                            for (var i = 0; i < lines.length; i++) {
-                                var line = lines[i].trim();
-                                if (line === "[Desktop Entry]") {
-                                    inDesktopEntry = true;
-                                    continue;
-                                } else if (line.startsWith("[")) {
-                                    inDesktopEntry = false;
-                                }
+                // Read the shortcut with FileView instead of shelling out to
+                // `cat`: StdioCollector hands out chunks, and with a chunk
+                // boundary in the middle of a UTF-8 name the label lost its
+                // first character ("Bazaar" -> "azaar", "微信" -> "信").
+                FileView {
+                    id: desktopFile
 
-                                if (!inDesktopEntry)
-                                    continue;
-
-                                // The file's own Name wins over the installed
-                                // entry, so renaming a shortcut is visible.
-                                if (line.startsWith("Name[zh_CN]="))
-                                    localisedName = line.substring(13);
-                                else if (line.startsWith("Name="))
-                                    plainName = line.substring(5);
-                                else if (line.startsWith("Icon="))
-                                    icon = line.substring(5);
-                                else if (line.startsWith("Comment[zh_CN]="))
-                                    comment = line.substring(16);
-                                else if (line.startsWith("Comment=") && comment === "")
-                                    comment = line.substring(8);
-                                else if (line.startsWith("Exec="))
-                                    exec = line.substring(5);
-                                else if (line.startsWith("Type="))
-                                    type = line.substring(5);
-                            }
-                            delegateItem.desktopName = localisedName !== "" ? localisedName : (plainName !== "" ? plainName : delegateItem.fileName);
-                            delegateItem.desktopIcon = icon;
-                            delegateItem.desktopComment = comment;
-                            delegateItem.desktopExec = exec;
-                            delegateItem.desktopType = type;
-                        }
-                    }
+                    path: delegateItem.isDesktopFile ? delegateItem.path : ""
+                    printErrors: false
+                    watchChanges: true
+                    onLoaded: delegateItem.parseDesktopFile(text())
+                    onTextChanged: delegateItem.parseDesktopFile(text())
                 }
+
 
                 Rectangle {
                     anchors.fill: parent
@@ -579,101 +623,123 @@ Item {
                     }
                 }
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: Tokens.padding.small
-                    spacing: Tokens.spacing.small
+                // Icon on its own, so the label and the rename editor are not
+                // competing with it inside a layout (a ColumnLayout gave the
+                // label a width of 0, which clipped names that used to fit).
+                Item {
+                    id: iconArea
 
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 64
+                    height: 64
+                    anchors.topMargin: Tokens.padding.small
 
-                        // Material You mode: every icon sits on a rounded
-                        // tile in the palette's container colour, which follows
-                        // the wallpaper. The app keeps its own artwork on top -
-                        // tracing logos out of full-colour icons produced
-                        // smudged shapes (and noise) for many apps.
-                        Rectangle {
-                            id: iconTile
+                    Rectangle {
+                        id: iconTile
 
-                            anchors.centerIn: parent
-                            width: 64
-                            height: 64
-                            radius: 20
-                            visible: delegateItem.useMaterialYouIcons
-                            color: delegateItem.iconContainerColour
-                        }
-
-                        Image {
-                            id: iconImage
-
-                            anchors.centerIn: parent
-                            width: delegateItem.useMaterialYouIcons ? Math.round(iconTile.width * 0.72) : 64
-                            height: width
-                            source: delegateItem.getIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix)
-                            fillMode: Image.PreserveAspectFit
-                        }
+                        anchors.centerIn: parent
+                        width: 64
+                        height: 64
+                        radius: 20
+                        visible: delegateItem.useMaterialYouIcons && delegateItem.isDesktopFile
+                        color: delegateItem.iconContainerColour
                     }
 
-                    Text {
-                        visible: !delegateItem.renaming
-                        Layout.fillWidth: true
-                        // Reserve exactly two lines so the icon area above has a
-                        // constant height and icons line up across rows.
-                        lineHeight: Math.ceil(font.pixelSize * 1.3)
-                        lineHeightMode: Text.FixedHeight
-                        Layout.preferredHeight: lineHeight * 2
-                        verticalAlignment: Text.AlignTop
-                        text: delegateItem.isDesktopFile
+                    Image {
+                        id: iconImage
+
+                        anchors.centerIn: parent
+                        width: delegateItem.useMaterialYouIcons && delegateItem.isDesktopFile ? Math.round(iconTile.width * 0.72) : 64
+                        height: width
+                        source: delegateItem.getIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix)
+                        fillMode: Image.PreserveAspectFit
+                        visible: !delegateItem.useMonoFileIcon
+                    }
+
+                    MaterialIcon {
+                        id: iconMono
+
+                        anchors.centerIn: parent
+                        visible: delegateItem.useMonoFileIcon
+                        text: delegateItem.monoFileGlyph
+                        color: delegateItem.iconGlyphColour
+                        // MaterialIcon builds its own font (family + variable
+                        // axes); assigning font.pixelSize broke that binding and
+                        // the glyph names were rendered as literal text.
+                        fontStyle: Tokens.font.icon.extraLarge
+                        // Material Symbols default to the outlined cut, which is
+                        // too thin to read on a wallpaper: use the filled one.
+                        fill: 1
+                    }
+                }
+
+                // Label: a fixed box the size of the cell, centred, two lines
+                // max. Long names elide, names that fit are shown in full.
+                Text {
+                    id: labelText
+                    visible: !delegateItem.renaming
+                    anchors.top: iconArea.bottom
+                    anchors.topMargin: Tokens.spacing.extraSmall
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: root.cellWidth - Tokens.spacing.extraSmall
+                    text: delegateItem.override?.name
+                        ?? (delegateItem.isDesktopFile
                             ? (delegateItem.desktopName || delegateItem.desktopEntry?.name || delegateItem.fileName)
-                            : delegateItem.fileName
-                        color: Colours.palette.m3onSurface
+                            : delegateItem.fileName)
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.body.small
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 2
+                    lineHeight: Math.ceil(font.pixelSize * 1.3)
+                    lineHeightMode: Text.FixedHeight
+                    verticalAlignment: Text.AlignTop
+                    elide: Text.ElideRight
+                    style: Text.Outline
+                    styleColor: Colours.palette.m3surface
+                }
+
+                // Rename editor: its own floating box under the icon (and wider
+                // than the cell so longer names are visible while typing). The
+                // icon area stays outside it, so a click meant for the editor
+                // can never launch the application.
+                StyledRect {
+                    id: renameBox
+
+                    visible: delegateItem.renaming
+                    z: 20
+                    anchors.top: iconArea.bottom
+                    anchors.topMargin: Tokens.spacing.extraSmall
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: root.cellWidth + Tokens.spacing.large
+                    height: Math.max(renameField.implicitHeight + Tokens.padding.extraSmall * 2, 28)
+                    radius: Tokens.rounding.small
+                    color: Colours.palette.m3primaryContainer
+
+                    TextInput {
+                        id: renameField
+
+                        anchors.fill: parent
+                        anchors.leftMargin: Tokens.padding.small
+                        anchors.rightMargin: Tokens.padding.small
+
+                        clip: true
+                        selectByMouse: true
+                        selectionColor: Colours.palette.m3primary
+                        selectedTextColor: Colours.palette.m3onPrimary
+                        color: Colours.palette.m3onPrimaryContainer
                         font: Tokens.font.body.small
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
-                        style: Text.Outline
-                        styleColor: Colours.palette.m3surface
-                    }
+                        horizontalAlignment: TextInput.AlignHCenter
+                        verticalAlignment: TextInput.AlignVCenter
 
-                    // Compact inline editor. A full StyledTextField (floating
-                    // label plus 24px horizontal padding) left no room for the
-                    // text inside a 100px-wide cell, so only the tail of the
-                    // name was ever visible.
-                    StyledRect {
-                        id: renameBox
-
-                        visible: delegateItem.renaming
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: Math.max(renameField.implicitHeight + Tokens.padding.extraSmall * 2, 26)
-                        radius: Tokens.rounding.small
-                        color: Colours.palette.m3primaryContainer
-
-                        TextInput {
-                            id: renameField
-
-                            anchors.fill: parent
-                            anchors.leftMargin: Tokens.padding.extraSmall
-                            anchors.rightMargin: Tokens.padding.extraSmall
-
-                            clip: true
-                            selectByMouse: true
-                            selectionColor: Colours.palette.m3primary
-                            selectedTextColor: Colours.palette.m3onPrimary
-                            color: Colours.palette.m3onPrimaryContainer
-                            font: Tokens.font.body.small
-                            horizontalAlignment: TextInput.AlignHCenter
-                            verticalAlignment: TextInput.AlignVCenter
-
-                            onAccepted: delegateItem.commitRename()
-                            onActiveFocusChanged: {
-                                // Clicking anywhere outside the editor cancels the rename.
-                                if (!activeFocus && delegateItem.renaming)
-                                    delegateItem.cancelRename();
-                            }
-                            Keys.onEscapePressed: delegateItem.cancelRename()
+                        onAccepted: delegateItem.commitRename()
+                        onActiveFocusChanged: {
+                            // Clicking anywhere outside the editor cancels the rename.
+                            if (!activeFocus && delegateItem.renaming)
+                                delegateItem.cancelRename();
                         }
+                        Keys.onEscapePressed: delegateItem.cancelRename()
                     }
                 }
 
@@ -733,6 +799,9 @@ Item {
                     id: mouseArea
 
                     anchors.fill: parent
+                    // While the editor is open its clicks belong to the text
+                    // field, not to the icon underneath.
+                    enabled: !delegateItem.renaming
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     acceptedButtons: Qt.LeftButton | Qt.RightButton

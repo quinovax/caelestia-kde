@@ -16,8 +16,8 @@
         {
           "id": "INSTALL_PAPIRUS",
           "type": "boolean",
-          "title": "Papirus icon theme",
-          "help": "The Papirus icon set.",
+          "title": "Flat Remix icon theme (Material)",
+          "help": "Material inspired icon set. The Papirus (Material Design 2 era) set is no longer installed by default.",
           "default": true
         },
         {

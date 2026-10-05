@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Ask the user for a file and print the chosen absolute path.
+#
+# Usage: caelestia-pick-path icon|command|executable
+#   icon        an image / icon file
+#   command     a .desktop launcher
+#   executable  any executable
+#
+# Exits without output when the user cancels, so callers can simply test for an
+# empty result. Uses kdialog (KDE) and falls back to zenity.
+
+set -u
+
+mode="${1:-icon}"
+
+case "$mode" in
+    icon|command|executable) ;;
+    *) echo "usage: caelestia-pick-path icon|command|executable" >&2; exit 2 ;;
+esac
+
+pick() {
+    if command -v kdialog >/dev/null 2>&1; then
+        case "$mode" in
+            icon)
+                kdialog --title "选择图标" --getopenfilename "$HOME" \
+                    "图片文件 (*.png *.svg *.jpg *.jpeg *.xpm *.ico)|*.png *.svg *.jpg *.jpeg *.xpm *.ico" 2>/dev/null
+                ;;
+            command)
+                kdialog --title "选择应用" --getopenfilename "/usr/share/applications" "应用 (*.desktop)|*.desktop" 2>/dev/null
+                ;;
+            executable)
+                kdialog --title "选择程序" --getopenfilename "/usr/bin" 2>/dev/null
+                ;;
+        esac
+    elif command -v zenity >/dev/null 2>&1; then
+        case "$mode" in
+            icon)
+                zenity --file-selection --title "选择图标" --file-filter="图片 | *.png *.svg *.jpg *.jpeg *.xpm *.ico" 2>/dev/null
+                ;;
+            command)
+                zenity --file-selection --title "选择应用" --file-filter="应用 | *.desktop" 2>/dev/null
+                ;;
+            executable)
+                zenity --file-selection --title "选择程序" 2>/dev/null
+                ;;
+        esac
+    else
+        exit 1
+    fi
+}
+
+path="$(pick)"
+[ -n "$path" ] || exit 0
+
+# A chosen launcher is more useful as its command than as a path.
+if [ "$mode" = "command" ] && [ -f "$path" ]; then
+    exec_line="$(grep -m1 '^Exec=' "$path" 2>/dev/null | cut -d= -f2-)"
+    if [ -n "$exec_line" ]; then
+        echo "$exec_line"
+        exit 0
+    fi
+fi
+
+echo "$path"

@@ -362,7 +362,43 @@ tweak_user_avatar_symlinks
 tweak_kwin_scripts_and_effects
 tweak_kde_shortcuts
 tweak_waydroid_apps
+# ---------------------------------------------------------------------------
+# Material inspired icon theme.
+#
+# The Papirus set the installer used to pull in is Material Design 2 era
+# artwork. Flat Remix keeps the Material look while looking closer to current
+# Google designs; the theme lands in the user's own icon directory so it does
+# not depend on a distribution package.
+tweak_icon_theme() {
+    local icons_dir="$HOME/.local/share/icons"
+    local target="Flat-Remix-Violet-Dark"
+
+    if [[ ! -d "$icons_dir/$target" ]]; then
+        if command -v git >/dev/null 2>&1; then
+            local tmp
+            tmp="$(mktemp -d)"
+            if git clone --depth 1 -q https://github.com/daniruiz/Flat-Remix.git "$tmp/flat-remix" 2>/dev/null; then
+                mkdir -p "$icons_dir"
+                cp -r "$tmp"/flat-remix/Flat-Remix* "$icons_dir"/ 2>/dev/null || true
+            fi
+            rm -rf "$tmp"
+        fi
+    fi
+
+    if [[ -d "$icons_dir/$target" ]]; then
+        kwriteconfig6 --file kdeglobals --group Icons --key Theme "$target" 2>/dev/null || true
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set org.gnome.desktop.interface icon-theme "$target" 2>/dev/null || true
+        fi
+        ok "Icon theme set to $target."
+    else
+        warn "Could not install the Material icon theme; keeping the current one."
+    fi
+}
+
+tweak_icon_theme
 tweak_reload_kde
+
 
 echo
 ok "All system tweaks applied."

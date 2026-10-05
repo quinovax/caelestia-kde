@@ -107,10 +107,12 @@ if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "shell" ]]; then
 fi
 
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
+    # Papirus is Material Design 2 era artwork; Flat Remix is the Material
+    # inspired set installed by scripts/09-system-tweaks.sh instead.
     if [[ "$INSTALL_PAPIRUS" == "true" ]]; then
-        PACKAGES+=(papirus-icon-theme)
+        PACKAGES+=(flat-remix-icon-theme)
     else
-        info "Skipping Papirus icon theme installation by user choice."
+        info "Skipping the Material icon theme installation by user choice."
     fi
 fi
 

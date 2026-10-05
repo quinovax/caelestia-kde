@@ -30,6 +30,9 @@ Singleton {
 
     signal saved
 
+    /// Emitted with the field ("icon"/"command") and the chosen path.
+    signal picked(string field, string value)
+
     function show(info: var): void {
         root.errorText = "";
         root.path = info.path ?? "";
@@ -55,81 +58,55 @@ Singleton {
         opProc.running = true;
     }
 
-    /// Rename what the desktop shows. For an application shortcut that is the
-    /// Name key inside the .desktop file (renaming the file itself would not
-    /// change the label); for a file/folder link it is the file name.
+    /// Customisations live in ShortcutOverrides instead of inside the .desktop
+    /// file: desktop shortcuts are frequently symlinks into root owned
+    /// directories, so editing them fails.
     function rename(newName: string): void {
         const trimmed = (newName ?? "").trim();
-        if (trimmed.length === 0)
-            return;
-        if (trimmed === "." || trimmed === ".." || trimmed.includes("/")) {
+        if (trimmed.length === 0) {
             root.errorText = qsTr("Invalid name");
             return;
         }
-
-        if (root.kind === "application") {
-            const script = [
-                "import sys",
-                "p, name = sys.argv[1], sys.argv[2]",
-                "lines = open(p, encoding='utf-8').read().splitlines()",
-                "out, done = [], []",
-                "for line in lines:",
-                "    if line.startswith('Name[zh_CN]='):",
-                "        out.append('Name[zh_CN]=' + name)",
-                "        done.append('zh')",
-                "    elif line.startswith('Name='):",
-                "        out.append('Name=' + name)",
-                "        done.append('plain')",
-                "    else:",
-                "        out.append(line)",
-                "if not done:",
-                "    out.append('Name=' + name)",
-                "open(p, 'w', encoding='utf-8').write('\\n'.join(out) + '\\n')"
-            ].join("\n");
-            root.runProc(["python3", "-c", script, root.path, trimmed]);
-            root.entryName = trimmed;
-            return;
-        }
-
-        if (trimmed === root.fileName)
-            return;
-        const idx = Math.max(root.path.lastIndexOf("/"), 0);
-        const dir = root.path.substring(0, idx);
-        const oldPath = root.path;
-        root.runProc(["kioclient", "move", oldPath, dir + "/" + trimmed]);
-        root.fileName = trimmed;
-        root.path = dir + "/" + trimmed;
+        ShortcutOverrides.set(root.path, "name", trimmed);
+        root.entryName = trimmed;
+        root.saved();
     }
 
-    /// Change the Icon= key of a .desktop shortcut.
+    /// The icon the desktop shows for this shortcut, whatever its kind.
     function setIcon(newIcon: string): void {
         const trimmed = (newIcon ?? "").trim();
-        if (root.kind !== "application" || trimmed.length === 0 || trimmed === root.entryIcon)
-            return;
-        const script = [
-            "import sys",
-            "p, icon = sys.argv[1], sys.argv[2]",
-            "lines = open(p, encoding='utf-8').read().splitlines()",
-            "out, done = [], False",
-            "for line in lines:",
-            "    if not done and line.startswith('Icon='):",
-            "        out.append('Icon=' + icon)",
-            "        done = True",
-            "    else:",
-            "        out.append(line)",
-            "if not done:",
-            "    out.append('Icon=' + icon)",
-            "open(p, 'w', encoding='utf-8').write('\\n'.join(out) + '\\n')"
-        ].join("\n");
-        root.runProc(["python3", "-c", script, root.path, trimmed]);
+        ShortcutOverrides.set(root.path, "icon", trimmed);
         root.entryIcon = trimmed;
+        root.saved();
     }
 
-    function trash(): void {
-        if (root.path.length === 0)
-            return;
-        root.runProc(["kioclient", "move", root.path, "trash:/"]);
-        root.open = false;
+    /// The command an application shortcut launches.
+    function setExec(newExec: string): void {
+        const trimmed = (newExec ?? "").trim();
+        ShortcutOverrides.set(root.path, "exec", trimmed);
+        root.entryExec = trimmed;
+        root.saved();
+    }
+
+    /// Open a file dialog and hand the result back to the dialog.
+    function pick(kind: string): void {
+        pickProc.pendingField = kind;
+        pickProc.command = ["caelestia-pick-path", kind];
+        pickProc.running = true;
+    }
+
+    Process {
+        id: pickProc
+
+        property string pendingField: ""
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const picked = text.trim();
+                if (picked.length > 0)
+                    root.picked(pickProc.pendingField, picked);
+            }
+        }
     }
 
     Process {

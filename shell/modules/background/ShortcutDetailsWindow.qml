@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Caelestia.Config
 import qs.components
 import qs.components.controls
@@ -32,12 +33,45 @@ FloatingWindow {
     implicitHeight: column.implicitHeight + Tokens.padding.extraLarge * 2
     visible: details.open
 
+    function syncFields(): void {
+        const override = ShortcutOverrides.forPath(details.path) ?? {};
+        nameField.text = override.name ?? (details.isApp ? details.entryName : details.fileName);
+        iconField.text = override.icon ?? details.entryIcon;
+        execField.text = override.exec ?? details.entryExec;
+    }
+
     onVisibleChanged: {
-        if (visible) {
-            nameField.text = details.isApp ? (details.entryName || details.fileName) : details.fileName;
-            iconField.text = details.entryIcon;
-            root.forceActiveFocus();
+        if (!visible)
+            return;
+        syncFields();
+        // Keyboard focus has to move to this window, otherwise the input method
+        // keeps typing into the window that had focus before.
+        root.requestActivate();
+        Qt.callLater(() => {
+            root.requestActivate();
+            nameField.forceActiveFocus();
+            nameField.selectAll();
+        });
+    }
+
+    // The dialog can be reused for another shortcut without being closed.
+    Connections {
+        function onPathChanged(): void {
+            syncFields();
         }
+
+        target: details
+    }
+
+    Connections {
+        function onPicked(field: string, value: string): void {
+            if (field === "icon")
+                iconField.text = value;
+            else if (field === "command")
+                execField.text = value;
+        }
+
+        target: details
     }
 
     Shortcut {
@@ -161,14 +195,43 @@ FloatingWindow {
                 onAccepted: details.rename(root.cleanedName())
             }
 
-            StyledTextField {
-                id: iconField
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
 
+                StyledTextField {
+                    id: iconField
+
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Icon")
+                    supportingText: qsTr("Icon name or absolute path")
+                }
+
+                IconButton {
+                    Layout.alignment: Qt.AlignTop
+                    icon: "folder_open"
+                    onClicked: details.pick("icon")
+                }
+            }
+
+            RowLayout {
                 Layout.fillWidth: true
                 visible: root.isApp
-                placeholderText: qsTr("Icon")
-                supportingText: qsTr("Icon name or absolute path")
-                onAccepted: details.setIcon(iconField.text)
+                spacing: Tokens.spacing.small
+
+                StyledTextField {
+                    id: execField
+
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Command")
+                    supportingText: qsTr("Command the shortcut runs")
+                }
+
+                IconButton {
+                    Layout.alignment: Qt.AlignTop
+                    icon: "folder_open"
+                    onClicked: details.pick("command")
+                }
             }
 
             StyledText {
@@ -189,13 +252,12 @@ FloatingWindow {
                     icon: "check"
                     text: qsTr("Save")
                     onClicked: {
-                        // For a shortcut this renames the displayed name, for a
-                        // file/folder link it renames the link itself.
                         const name = root.cleanedName();
                         if (name.length > 0)
                             details.rename(name);
+                        details.setIcon(iconField.text);
                         if (root.isApp)
-                            details.setIcon(iconField.text);
+                            details.setExec(execField.text);
                     }
                 }
 
@@ -222,6 +284,22 @@ FloatingWindow {
                 font: Tokens.font.body.small
                 color: Colours.palette.m3onSurfaceVariant
             }
+        }
+    }
+
+    // Lets the dialog be opened from the command line, which makes it easy to
+    // test without right-clicking:
+    //   qs -c caelestia ipc call shortcut details /path/to/x.desktop
+    IpcHandler {
+        target: "shortcut"
+
+        function details(path: string): void {
+            ShortcutDetails.show({
+                path: path,
+                fileName: path.substring(path.lastIndexOf("/") + 1),
+                kind: path.endsWith(".desktop") ? "application" : "file",
+                executable: path.endsWith(".desktop")
+            });
         }
     }
 
