@@ -289,6 +289,21 @@ Item {
                 /// Name / icon / command customised through the details dialog.
                 readonly property var override: ShortcutOverrides.overrides[path] ?? null
 
+                /// Absolute path of the script this shortcut points at. Symlinks
+                /// are followed so a script runs where it actually lives, not in
+                /// the folder the shortcut happens to sit in.
+                readonly property string scriptPath: desktopLinkTarget !== "" && desktopLinkTarget !== path ? desktopLinkTarget : path
+
+                /// A shortcut to a shell script opens in a terminal instead of
+                /// being handed to xdg-open. The link target is checked too: a
+                /// desktop entry is often a symlink without the extension (e.g.
+                /// "HMCL" -> "HMCL-3.17.0.357.sh").
+                readonly property bool isShellScript: {
+                    if (fileIsDir)
+                        return false;
+                    return [fileName, desktopLinkTarget].some(n => /\.(sh|bash|zsh)$/i.test(n ?? ""));
+                }
+
                 /// True when the details dialog gave this entry an icon of its
                 /// own (any kind: application, file or folder).
                 readonly property bool hasCustomIcon: (override?.icon ?? "") !== ""
@@ -544,6 +559,13 @@ Item {
                     const custom = override?.exec ?? "";
                     if (custom !== "") {
                         Launch.exec(custom.split(" "));
+                        return;
+                    }
+                    // Shell scripts are watched rather than run silently: open
+                    // them in the configured terminal, which keeps the window
+                    // open afterwards.
+                    if (isShellScript) {
+                        Launch.exec([...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/run_script_in_terminal.sh`, scriptPath]);
                         return;
                     }
                     if (delegateItem.desktopEntry)

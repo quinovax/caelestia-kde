@@ -184,7 +184,9 @@ if("shell" IN_LIST ENABLE_MODULES)
                 DESTINATION ${INSTALL_QSCONFDIR})
     endforeach()
 
-    install(PROGRAMS assets/wrap_term_launch.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
+    # install(DIRECTORY) above installs these as plain 644 files, so the ones
+    # that are executed by the shell have to be listed here explicitly.
+    install(PROGRAMS assets/wrap_term_launch.sh assets/run_script_in_terminal.sh DESTINATION "${INSTALL_QSCONFDIR}/assets")
 
     file(READ shell.qml SHELL_QML)
     string(REPLACE "settings.watchFiles: true" "settings.watchFiles: false" SHELL_QML "${SHELL_QML}")
