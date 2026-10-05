@@ -363,23 +363,25 @@ tweak_kwin_scripts_and_effects
 tweak_kde_shortcuts
 tweak_waydroid_apps
 # ---------------------------------------------------------------------------
-# Material inspired icon theme.
+# Icon theme.
 #
-# The Papirus set the installer used to pull in is Material Design 2 era
-# artwork. Flat Remix keeps the Material look while looking closer to current
-# Google designs; the theme lands in the user's own icon directory so it does
-# not depend on a distribution package.
+# The installer used to pull in Papirus (Material Design 2 era artwork). The
+# default is WhiteSur now; it is built from source into the user's own icon
+# directory so it does not depend on a distribution package.
 tweak_icon_theme() {
     local icons_dir="$HOME/.local/share/icons"
-    local target="Flat-Remix-Violet-Dark"
+    local target="WhiteSur-dark"
+    local repo="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
 
     if [[ ! -d "$icons_dir/$target" ]]; then
         if command -v git >/dev/null 2>&1; then
             local tmp
             tmp="$(mktemp -d)"
-            if git clone --depth 1 -q https://github.com/daniruiz/Flat-Remix.git "$tmp/flat-remix" 2>/dev/null; then
+            if git clone --depth 1 -q "$repo" "$tmp/whitesur" 2>/dev/null; then
                 mkdir -p "$icons_dir"
-                cp -r "$tmp"/flat-remix/Flat-Remix* "$icons_dir"/ 2>/dev/null || true
+                if [[ -x "$tmp/whitesur/install.sh" ]]; then
+                    (cd "$tmp/whitesur" && ./install.sh -d "$icons_dir" >/dev/null 2>&1) || true
+                fi
             fi
             rm -rf "$tmp"
         fi
@@ -392,7 +394,7 @@ tweak_icon_theme() {
         fi
         ok "Icon theme set to $target."
     else
-        warn "Could not install the Material icon theme; keeping the current one."
+        warn "Could not install the WhiteSur icon theme; keeping the current one."
     fi
 }
 

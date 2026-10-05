@@ -16,8 +16,8 @@
         {
           "id": "INSTALL_PAPIRUS",
           "type": "boolean",
-          "title": "Flat Remix icon theme (Material)",
-          "help": "Material inspired icon set. The Papirus (Material Design 2 era) set is no longer installed by default.",
+          "title": "WhiteSur icon theme",
+          "help": "WhiteSur (MacOS style) icon set, installed from source by the system tweaks step. Papirus (Material Design 2 era) is no longer installed.",
           "default": true
         },
         {

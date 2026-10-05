@@ -107,12 +107,13 @@ if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "shell" ]]; then
 fi
 
 if [[ "$PACKAGE_GROUP" == "all" || "$PACKAGE_GROUP" == "themes" ]]; then
-    # Papirus is Material Design 2 era artwork; Flat Remix is the Material
-    # inspired set installed by scripts/09-system-tweaks.sh instead.
+    # Papirus is Material Design 2 era artwork and the default is WhiteSur
+    # now. WhiteSur is not packaged by Fedora, so scripts/09-system-tweaks.sh
+    # builds it from source into ~/.local/share/icons.
     if [[ "$INSTALL_PAPIRUS" == "true" ]]; then
-        PACKAGES+=(flat-remix-icon-theme)
+        info "The icon theme (WhiteSur) is installed by the system tweaks step."
     else
-        info "Skipping the Material icon theme installation by user choice."
+        info "Skipping the icon theme installation by user choice."
     fi
 fi
 

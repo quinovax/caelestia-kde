@@ -288,6 +288,10 @@ Item {
 
                 /// Name / icon / command customised through the details dialog.
                 readonly property var override: ShortcutOverrides.overrides[path] ?? null
+
+                /// True when the details dialog gave this entry an icon of its
+                /// own (any kind: application, file or folder).
+                readonly property bool hasCustomIcon: (override?.icon ?? "") !== ""
                 // Only the base name is edited: ".desktop" is an implementation
                 // detail of the shortcut and would otherwise eat the whole
                 // 100px-wide editor ("xxx.desktop" only ever showed "esktop").
@@ -437,9 +441,16 @@ Item {
                     return "image://icon/" + getIconName(isDir, filename, suffix);
                 }
 
-                /// Material You mode for folders and files: just the shape, in
-                /// the palette colour and without an application style tile.
-                readonly property bool useMonoFileIcon: useMaterialYouIcons && !isDesktopFile
+                /// Material You mode for folders and files with no icon of their
+                /// own: just the shape, in the palette colour and without an
+                /// application style tile. An icon chosen in the details dialog
+                /// wins over the default glyph.
+                readonly property bool useMonoFileIcon: useMaterialYouIcons && !isDesktopFile && !hasCustomIcon
+
+                /// Whether this entry is drawn on the Material You tile (the way
+                /// application shortcuts are): applications always, and any
+                /// entry with a custom icon.
+                readonly property bool usesTile: useMaterialYouIcons && (isDesktopFile || hasCustomIcon)
 
                 /// Material Symbols glyph for this entry (M3 icon language).
                 readonly property string monoFileGlyph: {
@@ -642,7 +653,7 @@ Item {
                         width: 64
                         height: 64
                         radius: 20
-                        visible: delegateItem.useMaterialYouIcons && delegateItem.isDesktopFile
+                        visible: delegateItem.usesTile
                         color: delegateItem.iconContainerColour
                     }
 
@@ -650,7 +661,7 @@ Item {
                         id: iconImage
 
                         anchors.centerIn: parent
-                        width: delegateItem.useMaterialYouIcons && delegateItem.isDesktopFile ? Math.round(iconTile.width * 0.72) : 64
+                        width: delegateItem.usesTile ? Math.round(iconTile.width * 0.72) : 64
                         height: width
                         source: delegateItem.getIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix)
                         fillMode: Image.PreserveAspectFit
