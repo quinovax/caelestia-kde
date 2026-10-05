@@ -38,6 +38,9 @@ MouseArea {
     property real maxHeight: 320
     readonly property alias backgroundItem: menu
     property bool transparentBackground: false
+    /// Row under the pointer; the second level menu hangs off it.
+    property Item hoveredRow: null
+    property MenuItem openSubmenu: null
 
     signal itemSelected(item: MenuItem)
     signal rightClickedAt(real x, real y)
@@ -206,6 +209,16 @@ MouseArea {
                         }
 
                         StateLayer {
+                            onContainsMouseChanged: {
+                                if (containsMouse) {
+                                    root.hoveredRow = item;
+                                    root.openSubmenu = (item.modelData?.children?.length ?? 0) > 0 ? item.modelData : null;
+                                } else if (root.hoveredRow === item) {
+                                    root.hoveredRow = null;
+                                    root.openSubmenu = null;
+                                }
+                            }
+
                             topLeftRadius: parent.topLeftRadius
                             topRightRadius: parent.topRightRadius
                             bottomLeftRadius: parent.bottomLeftRadius
@@ -244,6 +257,17 @@ MouseArea {
                             Loader {
                                 asynchronous: true
                                 Layout.alignment: Qt.AlignVCenter
+                                active: (item.modelData?.children?.length ?? 0) > 0
+
+                                sourceComponent: MaterialIcon {
+                                    text: "chevron_right"
+                                    color: Colours.palette.m3onSurfaceVariant
+                                }
+                            }
+
+                            Loader {
+                                asynchronous: true
+                                Layout.alignment: Qt.AlignVCenter
                                 active: item.modelData?.trailingIcon.length > 0
                                 visible: active
 
@@ -257,6 +281,120 @@ MouseArea {
                 }
             }
         }
+        }
+    }
+
+    Elevation {
+        id: submenu
+
+        readonly property var entries: root.openSubmenu?.children ?? []
+
+        x: {
+            if (!root.hoveredRow)
+                return 0;
+            const p = root.hoveredRow.mapToItem(root, root.hoveredRow.width - Tokens.padding.small, 0);
+            return p.x;
+        }
+        y: {
+            if (!root.hoveredRow)
+                return 0;
+            const p = root.hoveredRow.mapToItem(root, 0, 0);
+            return p.y;
+        }
+
+        radius: Tokens.rounding.large
+        level: 3
+        opacity: root.openSubmenu && root.expanded ? 1 : 0
+        visible: opacity > 0
+        implicitWidth: Math.max(180, subColumn.implicitWidth + Tokens.padding.extraSmall * 2)
+        implicitHeight: subColumn.implicitHeight + Tokens.padding.extraSmall * 2
+        width: implicitWidth
+        height: implicitHeight
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onWheel: e => e.accepted = true
+        }
+
+        StyledRect {
+            anchors.fill: parent
+            radius: parent.radius
+            color: GlobalConfig.appearance.pitchBlack ? "#000000" : Colours.palette.m3surfaceContainerLow
+
+            ColumnLayout {
+                id: subColumn
+
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.extraSmall
+                spacing: 0
+
+                Repeater {
+                    model: submenu.entries
+
+                    StyledRect {
+                        id: subRow
+
+                        required property int index
+                        required property MenuItem modelData
+
+                        visible: modelData?.visible ?? false
+
+                        Layout.fillWidth: true
+                        implicitWidth: subRowLayout.implicitWidth + Tokens.padding.medium * 2
+                        implicitHeight: visible ? subRowLayout.implicitHeight + Tokens.padding.medium * 2 : 0
+
+                        radius: Tokens.rounding.extraSmall
+                        topLeftRadius: index === 0 ? Tokens.rounding.medium : radius
+                        topRightRadius: index === 0 ? Tokens.rounding.medium : radius
+                        bottomLeftRadius: Tokens.rounding.medium
+                        bottomRightRadius: Tokens.rounding.medium
+
+                        color: "transparent"
+
+                        StateLayer {
+                            topLeftRadius: parent.topLeftRadius
+                            topRightRadius: parent.topRightRadius
+                            bottomLeftRadius: parent.bottomLeftRadius
+                            bottomRightRadius: parent.bottomRightRadius
+                            color: Colours.palette.m3onSurface
+                            disabled: !root.expanded
+                            onClicked: {
+                                subRow.modelData.clicked();
+                                root.openSubmenu = null;
+                                root.expanded = false;
+                            }
+                        }
+
+                        RowLayout {
+                            id: subRowLayout
+
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.medium
+                            spacing: Tokens.spacing.small
+
+                            MaterialIcon {
+                                Layout.alignment: Qt.AlignVCenter
+                                text: subRow.modelData?.icon ?? ""
+                                color: Colours.palette.m3onSurfaceVariant
+                            }
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.fillWidth: true
+                                text: subRow.modelData?.text ?? ""
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

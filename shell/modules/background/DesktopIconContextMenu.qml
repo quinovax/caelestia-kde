@@ -19,6 +19,8 @@ Controls.Menu {
 
     signal renameRequested(Item delegateTarget)
 
+    signal detailsRequested(Item delegateTarget)
+
     signal trashRequested(string path)
 
     function openFor(delegateItem, clickX, clickY): void {
@@ -94,6 +96,15 @@ Controls.Menu {
             onClicked: {
                 root.expanded = false;
                 root.togglePinToDock();
+            }
+        },
+        Controls.MenuItem {
+            text: qsTr("Details")
+            icon: "info"
+            visible: root.target !== null
+            onClicked: {
+                root.expanded = false;
+                root.detailsRequested(root.target);
             }
         },
         Controls.MenuItem {

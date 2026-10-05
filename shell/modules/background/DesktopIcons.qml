@@ -22,6 +22,7 @@ Item {
 
     property int cellWidth: 100
     property int cellHeight: 120
+
     property var savedOrder: []
     property bool layoutLoaded: false
     // True while an icon's inline rename editor is open; the background window
@@ -91,6 +92,24 @@ Item {
         if (trimmed === "." || trimmed === ".." || trimmed.includes("/"))
             return;
         runFileOp(["kioclient", "move", oldPath, dir + "/" + trimmed]);
+    }
+
+    function showDetails(item: var): void {
+        if (!item)
+            return;
+        ShortcutDetails.show({
+            path: item.path,
+            fileName: item.fileName,
+            kind: item.isDesktopFile ? "application" : (item.fileIsDir ? "folder" : "file"),
+            linkTarget: item.desktopLinkTarget !== item.path ? item.desktopLinkTarget : "",
+            executable: item.isDesktopFile ? true : item.desktopExecutable,
+            iconSource: item.getIconSource(item.fileIsDir, item.fileName, item.fileSuffix),
+            entryName: item.desktopName,
+            entryIcon: item.desktopIcon,
+            entryComment: item.desktopComment,
+            entryExec: item.desktopExec,
+            entryType: item.desktopType
+        });
     }
 
     function iconAt(x: real, y: real): bool {
@@ -209,12 +228,33 @@ Item {
                 required property bool fileIsDir
                 required property string fileSuffix
 
-                property string path: filePath.replace("file://", "")
+                /// FolderListModel hands out percent-encoded URLs, so a shortcut
+                /// named e.g. "微信.desktop" arrived as "%E5%BE%AE..." and every
+                /// shell command using it (cat/kioclient/xdg-open) failed.
+                property string path: {
+                    const p = filePath.replace("file://", "");
+                    try {
+                        return decodeURIComponent(p);
+                    } catch (e) {
+                        return p;
+                    }
+                }
                 property string desktopName: fileName
                 property string desktopIcon: ""
+                property string desktopComment: ""
+                property string desktopExec: ""
+                property string desktopType: ""
+                property string desktopLinkTarget: ""
+                property bool desktopExecutable: false
                 property int col: -1
                 property int row: -1
                 property bool renaming: false
+
+                readonly property bool isDesktopFile: fileName.toLowerCase().endsWith(".desktop")
+                // Only the base name is edited: ".desktop" is an implementation
+                // detail of the shortcut and would otherwise eat the whole
+                // 100px-wide editor ("xxx.desktop" only ever showed "esktop").
+                readonly property string renameBase: isDesktopFile ? fileName.slice(0, -8) : fileName
 
                 readonly property DesktopEntry desktopEntry: {
                     if (!fileName.toLowerCase().endsWith(".desktop"))
@@ -225,26 +265,60 @@ Item {
                         ?? null;
                 }
 
-                readonly property string iconSetBase: Qt.resolvedUrl(Quickshell.shellDir + "/assets/icons/yet-another-monochrome-icon-set")
                 property bool useMaterialYouIcons: GlobalConfig.forScreen(screenData.name).background.materialYouIconsEnabled
                 property bool useVibrantIcons: GlobalConfig.forScreen(screenData.name).background.materialYouIconsVibrant
+
+                /// Icon name/path as declared by the shortcut. An absolute path
+                /// from the shortcut itself wins: amber/ACE packages (WeChat, QQ)
+                /// register a bare name like "wechat" with the icon theme, but the
+                /// shortcut points straight at their real artwork.
+                readonly property string rawIconValue: {
+                    if (!isDesktopFile)
+                        return "";
+                    const entryIcon = desktopEntry?.icon ?? "";
+                    if (desktopIcon.startsWith("/"))
+                        return desktopIcon;
+                    if (entryIcon.startsWith("/"))
+                        return entryIcon;
+                    return entryIcon || desktopIcon;
+                }
+
+
+                /// Rounded container behind the glyph, plus the glyph colour.
+                /// The palette's primary is tone 90 (nearly white), so tinting
+                /// with it washed the icons out; "vibrant" used to force
+                /// saturation to 1.0 and turned them neon. The container/on
+                /// pair is what Material uses for themed icons.
+                readonly property color iconContainerColour: {
+                    const c = Colours.palette.m3primaryContainer;
+                    if (!useVibrantIcons)
+                        return c;
+                    return Qt.hsla(c.hslHue, Math.min(1, c.hslSaturation * 1.35),
+                        Math.max(0.2, Math.min(0.42, c.hslLightness + 0.03)), c.a);
+                }
+                readonly property color iconGlyphColour: Colours.palette.m3onPrimaryContainer
 
                 function startRename(): void {
                     if (root.renamingDelegate && root.renamingDelegate !== delegateItem)
                         root.renamingDelegate.cancelRename();
                     root.renamingDelegate = delegateItem;
                     renaming = true;
-                    renameField.text = fileName;
+                    renameField.text = renameBase;
+                    renameField.selectAll();
                     renameField.forceActiveFocus();
                 }
 
                 function commitRename(): void {
                     if (!renaming)
                         return;
+                    let target = renameField.text.trim();
                     renaming = false;
                     if (root.renamingDelegate === delegateItem)
                         root.renamingDelegate = null;
-                    root.renameIcon(path, renameField.text);
+                    // A shortcut stays a shortcut: never drop the extension.
+                    if (isDesktopFile && target.length > 0 && !target.toLowerCase().endsWith(".desktop"))
+                        target += ".desktop";
+                    root.renameIcon(path, target);
                 }
 
                 function cancelRename(): void {
@@ -308,34 +382,13 @@ Item {
                     return "text-x-generic";
                 }
 
+                /// Full-colour artwork, used when Material You icons are off or
+                /// when no glyph could be produced for this entry.
                 function getIconSource(isDir: bool, filename: string, suffix: string): string {
-                    if (filename.toLowerCase().endsWith(".desktop")) {
-                        const iconVal = desktopEntry?.icon || desktopIcon;
-                        if (iconVal !== "") {
-                            if (iconVal.startsWith("/"))
-                                return "file://" + iconVal;
-                            if (useMaterialYouIcons)
-                                return iconSetBase + "/apps/scalable/" + iconVal + ".svg";
-                            return Quickshell.iconPath(iconVal, "application-x-executable");
-                        }
-                    }
-                    const iconName = getIconName(isDir, filename, suffix);
-                    if (useMaterialYouIcons) {
-                        if (isDir)
-                            return iconSetBase + "/places/scalable/folder.svg";
-                        return iconSetBase + "/mimetypes/scalable/" + iconName + ".svg";
-                    }
-                    return "image://icon/" + iconName;
-                }
-
-                function getFallbackIconSource(isDir: bool, filename: string, suffix: string): string {
-                    if (filename.toLowerCase().endsWith(".desktop")) {
-                        const iconVal = desktopEntry?.icon || desktopIcon;
-                        if (iconVal !== "") {
-                            if (iconVal.startsWith("/"))
-                                return "file://" + iconVal;
-                            return Quickshell.iconPath(iconVal, "application-x-executable");
-                        }
+                    if (isDesktopFile && rawIconValue !== "") {
+                        if (rawIconValue.startsWith("/"))
+                            return "file://" + rawIconValue;
+                        return Quickshell.iconPath(rawIconValue, "application-x-executable");
                     }
                     return "image://icon/" + getIconName(isDir, filename, suffix);
                 }
@@ -356,13 +409,32 @@ Item {
                 Component.onCompleted: {
                     if (root.layoutLoaded)
                         initPosition();
-                    if (fileName.toLowerCase().endsWith(".desktop"))
+                    if (isDesktopFile)
                         desktopInfoProc.running = true;
+                    else
+                        desktopMetaProc.running = true;
                 }
 
                 Component.onDestruction: {
                     if (root.renamingDelegate === delegateItem)
                         root.renamingDelegate = null;
+                }
+
+                Process {
+                    id: desktopMetaProc
+
+                    // readlink -f: where a file/folder shortcut points, and
+                    // whether the target is executable.
+                    command: ["sh", "-c", "readlink -f -- \"$1\"; if [ -x \"$1\" ]; then echo yes; else echo no; fi", "--", path]
+                    stdout: StdioCollector {
+                        onStreamFinished: {
+                            const lines = text.trim().split("\n");
+                            if (lines.length > 0)
+                                delegateItem.desktopLinkTarget = lines[0];
+                            if (lines.length > 1)
+                                delegateItem.desktopExecutable = lines[1] === "yes";
+                        }
+                    }
                 }
 
                 Process {
@@ -373,8 +445,6 @@ Item {
                         onStreamFinished: {
                             var lines = text.trim().split("\n");
                             var inDesktopEntry = false;
-                            var nameFound = false;
-                            var iconFound = false;
                             for (var i = 0; i < lines.length; i++) {
                                 var line = lines[i].trim();
                                 if (line === "[Desktop Entry]") {
@@ -384,17 +454,19 @@ Item {
                                     inDesktopEntry = false;
                                 }
 
-                                if (inDesktopEntry) {
-                                    if (!nameFound && line.startsWith("Name=")) {
-                                        desktopName = line.substring(5);
-                                        nameFound = true;
-                                    } else if (!iconFound && line.startsWith("Icon=")) {
-                                        desktopIcon = line.substring(5);
-                                        iconFound = true;
-                                    }
-                                }
-                                if (nameFound && iconFound)
-                                    break;
+                                if (!inDesktopEntry)
+                                    continue;
+
+                                if (line.startsWith("Name="))
+                                    desktopName = line.substring(5);
+                                else if (line.startsWith("Icon="))
+                                    desktopIcon = line.substring(5);
+                                else if (line.startsWith("Comment="))
+                                    desktopComment = line.substring(8);
+                                else if (line.startsWith("Exec="))
+                                    desktopExec = line.substring(5);
+                                else if (line.startsWith("Type="))
+                                    desktopType = line.substring(5);
                             }
                         }
                     }
@@ -422,30 +494,30 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
-                        Image {
-                            id: iconImage
+                        // Material You mode: every icon sits on a rounded
+                        // tile in the palette's container colour, which follows
+                        // the wallpaper. The app keeps its own artwork on top -
+                        // tracing logos out of full-colour icons produced
+                        // smudged shapes (and noise) for many apps.
+                        Rectangle {
+                            id: iconTile
 
                             anchors.centerIn: parent
                             width: 64
                             height: 64
+                            radius: 20
+                            visible: delegateItem.useMaterialYouIcons
+                            color: delegateItem.iconContainerColour
+                        }
+
+                        Image {
+                            id: iconImage
+
+                            anchors.centerIn: parent
+                            width: delegateItem.useMaterialYouIcons ? Math.round(iconTile.width * 0.72) : 64
+                            height: width
                             source: delegateItem.getIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix)
                             fillMode: Image.PreserveAspectFit
-                            layer.enabled: delegateItem.useMaterialYouIcons
-                            layer.effect: Colouriser {
-                                sourceColor: "black"
-                                colorizationColor: {
-                                    let c = Colours.palette.m3primary;
-                                    if (delegateItem.useVibrantIcons)
-                                        return Qt.hsla(c.hslHue, 1.0, Math.max(0.4, Math.min(0.6, c.hslLightness)), c.a);
-                                    return c;
-                                }
-                            }
-                            onStatusChanged: {
-                                if (status === Image.Error && delegateItem.useMaterialYouIcons) {
-                                    layer.enabled = false;
-                                    source = delegateItem.getFallbackIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix);
-                                }
-                            }
                         }
                     }
 
@@ -473,18 +545,43 @@ Item {
                         styleColor: Colours.palette.m3surface
                     }
 
-                    StyledTextField {
-                        id: renameField
+                    // Compact inline editor. A full StyledTextField (floating
+                    // label plus 24px horizontal padding) left no room for the
+                    // text inside a 100px-wide cell, so only the tail of the
+                    // name was ever visible.
+                    StyledRect {
+                        id: renameBox
 
                         visible: delegateItem.renaming
                         Layout.fillWidth: true
-                        onAccepted: delegateItem.commitRename()
-                        onActiveFocusChanged: {
-                            // Clicking anywhere outside the editor cancels the rename.
-                            if (!activeFocus && delegateItem.renaming)
-                                delegateItem.cancelRename();
+                        Layout.preferredHeight: Math.max(renameField.implicitHeight + Tokens.padding.extraSmall * 2, 26)
+                        radius: Tokens.rounding.small
+                        color: Colours.palette.m3primaryContainer
+
+                        TextInput {
+                            id: renameField
+
+                            anchors.fill: parent
+                            anchors.leftMargin: Tokens.padding.extraSmall
+                            anchors.rightMargin: Tokens.padding.extraSmall
+
+                            clip: true
+                            selectByMouse: true
+                            selectionColor: Colours.palette.m3primary
+                            selectedTextColor: Colours.palette.m3onPrimary
+                            color: Colours.palette.m3onPrimaryContainer
+                            font: Tokens.font.body.small
+                            horizontalAlignment: TextInput.AlignHCenter
+                            verticalAlignment: TextInput.AlignVCenter
+
+                            onAccepted: delegateItem.commitRename()
+                            onActiveFocusChanged: {
+                                // Clicking anywhere outside the editor cancels the rename.
+                                if (!activeFocus && delegateItem.renaming)
+                                    delegateItem.cancelRename();
+                            }
+                            Keys.onEscapePressed: delegateItem.cancelRename()
                         }
-                        Keys.onEscapePressed: delegateItem.cancelRename()
                     }
                 }
 
@@ -580,5 +677,6 @@ Item {
                 delegateTarget.startRename();
         }
         onTrashRequested: path => root.trashIcon(path)
+        onDetailsRequested: delegateTarget => root.showDetails(delegateTarget)
     }
 }

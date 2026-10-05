@@ -8,6 +8,8 @@ QtObject {
     property string activeText: text
     property bool visible: true
     property var value
+    /// Second level entries; when non-empty the row opens a flyout.
+    property list<QtObject> children: []
 
     signal clicked
 }

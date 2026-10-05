@@ -46,7 +46,14 @@ Controls.Menu {
                     });
                 } else if (entry.action === "OpenTerminal") {
                     Launch.exec([...GlobalConfig.general.apps.terminal]);
+                } else if (entry.action === "AddShortcutMenu") {
+                    // handled by the second level menu
+                } else if (entry.action === "AddAppShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "app"]);
+                } else if (entry.action === "AddFolderShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "folder"]);
                 } else if (entry.action === "AddFileShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "file"]);
                     // Pick a file or folder and drop a shortcut onto the desktop.
                     // .desktop files are copied (launchers); anything else becomes
                     // a symlink, which works for both files and folders.
@@ -73,6 +80,29 @@ Controls.Menu {
         execTimer.restart();
     }
 
+    function buildAddShortcutSubmenu() {
+        function entry(text, icon, action) {
+            const it = menuItemComp.createObject(root);
+            it.text = text;
+            it.icon = icon;
+            it.clicked.connect(() => root.executeAction(action));
+            return it;
+        }
+
+        return [
+            entry(qsTr("Application..."), "apps", "AddAppShortcut"),
+            entry(qsTr("File..."), "insert_drive_file", "AddFileShortcut"),
+            entry(qsTr("Folder..."), "folder", "AddFolderShortcut")
+        ];
+    }
+
+    function executeAction(action) {
+        const key = "__action_" + action;
+        root.entryByKey[key] = { action: action };
+        root.executeEntryByKey(key);
+        delete root.entryByKey[key];
+    }
+
     function applyEntries(entries, sourceName) {
         const buildStartedAt = Date.now();
         const normalized = (!entries || entries.length === 0)
@@ -97,6 +127,8 @@ Controls.Menu {
 
             item.text = entry.label;
             item.icon = entry.icon || "application-x-executable";
+            // "Add a shortcut" fans out into app / file / folder.
+            item.children = entry.action === "AddShortcutMenu" ? root.buildAddShortcutSubmenu() : [];
             newArr.push(item);
         }
         for (const k in root.itemPool) {
