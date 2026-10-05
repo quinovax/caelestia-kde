@@ -292,6 +292,14 @@ Item {
                 /// True when the details dialog gave this entry an icon of its
                 /// own (any kind: application, file or folder).
                 readonly property bool hasCustomIcon: (override?.icon ?? "") !== ""
+
+                /// A custom icon is far more often an ordinary picture
+                /// (screenshot, photo, cover art) than a shaped logo, so it is
+                /// clipped to a rounded square before being drawn. Artwork that
+                /// already has transparent corners is unaffected by the mask.
+                /// Icons given by name come from the icon theme and are left
+                /// alone.
+                readonly property bool roundCustomIcon: (override?.icon ?? "").startsWith("/")
                 // Only the base name is edited: ".desktop" is an implementation
                 // detail of the shortcut and would otherwise eat the whole
                 // 100px-wide editor ("xxx.desktop" only ever showed "esktop").
@@ -666,6 +674,29 @@ Item {
                         source: delegateItem.getIconSource(delegateItem.fileIsDir, delegateItem.fileName, delegateItem.fileSuffix)
                         fillMode: Image.PreserveAspectFit
                         visible: !delegateItem.useMonoFileIcon
+
+                        layer.enabled: delegateItem.roundCustomIcon
+                        layer.effect: Mask {
+                            maskSource: customIconMask
+                        }
+                    }
+
+                    // Rounded square used to clip a custom icon. It has to be a
+                    // layered item of its own: MultiEffect samples the mask
+                    // texture in the source item's coordinates, so it must have
+                    // the same size as the image it masks.
+                    Item {
+                        id: customIconMask
+
+                        anchors.fill: iconImage
+                        visible: false
+                        layer.enabled: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Math.round(width * 0.28)
+                            color: "white"
+                        }
                     }
 
                     MaterialIcon {
