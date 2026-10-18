@@ -58,7 +58,7 @@ Item {
         id: icon
 
         anchors.fill: parent
-        source: Icons.getTrayIcon(root.modelData.id, root.modelData.icon)
+        source: Icons.getTrayIcon(root.modelData.id, root.modelData.icon, root.modelData.title)
         colour: Colours.palette.m3secondary
         layer.enabled: Config.bar.tray.recolour
     }

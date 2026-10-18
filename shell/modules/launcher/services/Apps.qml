@@ -75,6 +75,6 @@ Searcher {
 
         path: `${Paths.state}/apps.sqlite`
         favouriteApps: GlobalConfig.launcher.favouriteApps
-        entries: DesktopEntries.applications.values
+        entries: DesktopApps.dedupe(DesktopEntries.applications.values)
     }
 }

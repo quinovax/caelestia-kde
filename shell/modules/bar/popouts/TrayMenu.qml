@@ -55,6 +55,10 @@ StackView {
         property int groupRebuildCount: 0
         property real perfOpenStartedAt: 0
 
+        // Menus like fcitx5's can list a dozen entries; without a cap the
+        // popout would swallow most of the screen. Scroll anything past this.
+        readonly property real maxScrollHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1080) * 0.4
+
         required property real scaleOffset
         required property real fontScale
 
@@ -152,128 +156,150 @@ StackView {
             onModelChanged: menu.queueUpdateGroups()
         }
 
-        Repeater {
-            model: menu.itemGroups
+        Flickable {
+            id: scrollArea
 
-            StyledRect {
-                id: groupCard
+            // Size from the cards, never from the parent Column: the Column's own
+            // implicitWidth is derived from this item, so parent.width here would
+            // be a binding loop and blow the popout up to screen size.
+            implicitWidth: scrollContent.implicitWidth
+            implicitHeight: Math.min(scrollContent.implicitHeight, menu.maxScrollHeight)
+            contentWidth: width
+            contentHeight: scrollContent.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            interactive: contentHeight > height
 
-                required property var modelData
+            Column {
+                id: scrollContent
 
-                implicitWidth: Tokens.sizes.bar.trayMenuWidth * menu.scaleOffset + Tokens.padding.medium * 2 * menu.scaleOffset
-                implicitHeight: groupLayout.implicitHeight + Tokens.padding.medium * 2 * menu.scaleOffset
+                width: scrollArea.width
+                spacing: menu.spacing
 
-                radius: Tokens.rounding.medium * menu.scaleOffset
-                color: Colours.tPalette.m3surfaceContainer
-                clip: true
+            Repeater {
+                model: menu.itemGroups
 
-                Column {
-                    id: groupLayout
+                StyledRect {
+                    id: groupCard
 
-                    x: Tokens.padding.medium * menu.scaleOffset
-                    y: Tokens.padding.medium * menu.scaleOffset
-                    width: parent.width - Tokens.padding.medium * 2 * menu.scaleOffset
-                    spacing: Tokens.spacing.small * menu.scaleOffset
+                    required property var modelData
 
-                    Repeater {
-                        model: groupCard.modelData
+                    implicitWidth: Tokens.sizes.bar.trayMenuWidth * menu.scaleOffset + Tokens.padding.medium * 2 * menu.scaleOffset
+                    implicitHeight: groupLayout.implicitHeight + Tokens.padding.medium * 2 * menu.scaleOffset
 
-                        StyledRect {
-                            id: item
+                    radius: Tokens.rounding.medium * menu.scaleOffset
+                    color: Colours.tPalette.m3surfaceContainer
+                    clip: true
 
-                            required property var modelData
+                    Column {
+                        id: groupLayout
 
-                            implicitWidth: parent.width
-                            implicitHeight: childrenItem.implicitHeight
+                        x: Tokens.padding.medium * menu.scaleOffset
+                        y: Tokens.padding.medium * menu.scaleOffset
+                        width: parent.width - Tokens.padding.medium * 2 * menu.scaleOffset
+                        spacing: Tokens.spacing.small * menu.scaleOffset
 
-                            radius: Tokens.rounding.full * menu.scaleOffset
-                            color: "transparent"
+                        Repeater {
+                            model: groupCard.modelData
 
-                            Loader {
-                                id: childrenItem
+                            StyledRect {
+                                id: item
 
-                                asynchronous: false
-                                anchors.left: parent.left
-                                anchors.right: parent.right
+                                required property var modelData
 
-                                sourceComponent: Item {
-                                    implicitHeight: label.implicitHeight
+                                implicitWidth: parent.width
+                                implicitHeight: childrenItem.implicitHeight
 
-                                    StateLayer {
-                                        anchors.margins: -Tokens.padding.extraSmall / 2 * menu.scaleOffset
-                                        anchors.leftMargin: -Tokens.padding.small * menu.scaleOffset
-                                        anchors.rightMargin: -Tokens.padding.small * menu.scaleOffset
+                                radius: Tokens.rounding.full * menu.scaleOffset
+                                color: "transparent"
 
-                                        radius: item.radius
-                                        disabled: !item.modelData.enabled
+                                Loader {
+                                    id: childrenItem
 
-                                        onClicked: {
-                                            const entry = item.modelData;
-                                            if (entry.hasChildren)
-                                                root.push(subMenuComp.createObject(null, {
-                                                    handle: entry,
-                                                    isSubMenu: true,
-                                                    scaleOffset: root.scaleOffset,
-                                                    fontScale: root.fontScale
-                                                }));
-                                            else {
-                                                item.modelData.triggered();
-                                                root.popouts.hasCurrent = false;
+                                    asynchronous: false
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+
+                                    sourceComponent: Item {
+                                        implicitHeight: label.implicitHeight
+
+                                        StateLayer {
+                                            anchors.margins: -Tokens.padding.extraSmall / 2 * menu.scaleOffset
+                                            anchors.leftMargin: -Tokens.padding.small * menu.scaleOffset
+                                            anchors.rightMargin: -Tokens.padding.small * menu.scaleOffset
+
+                                            radius: item.radius
+                                            disabled: !item.modelData.enabled
+
+                                            onClicked: {
+                                                const entry = item.modelData;
+                                                if (entry.hasChildren)
+                                                    root.push(subMenuComp.createObject(null, {
+                                                        handle: entry,
+                                                        isSubMenu: true,
+                                                        scaleOffset: root.scaleOffset,
+                                                        fontScale: root.fontScale
+                                                    }));
+                                                else {
+                                                    item.modelData.triggered();
+                                                    root.popouts.hasCurrent = false;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    Loader {
-                                        id: icon
+                                        Loader {
+                                            id: icon
 
-                                        asynchronous: false
-                                        anchors.left: parent.left
+                                            asynchronous: false
+                                            anchors.left: parent.left
 
-                                        active: item.modelData.icon !== ""
+                                            active: item.modelData.icon !== ""
 
-                                        sourceComponent: IconImage {
-                                            asynchronous: true
-                                            implicitSize: label.implicitHeight
+                                            sourceComponent: IconImage {
+                                                asynchronous: true
+                                                implicitSize: label.implicitHeight
 
-                                            source: item.modelData.icon
+                                                source: item.modelData.icon
+                                            }
                                         }
-                                    }
 
-                                    StyledText {
-                                        id: label
+                                        StyledText {
+                                            id: label
 
-                                        anchors.left: icon.right
-                                        anchors.leftMargin: icon.active ? Tokens.spacing.medium * menu.scaleOffset : 0
+                                            anchors.left: icon.right
+                                            anchors.leftMargin: icon.active ? Tokens.spacing.medium * menu.scaleOffset : 0
 
-                                        text: labelMetrics.elidedText
-                                        color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                                        font.pointSize: Tokens.font.body.medium.pointSize * menu.fontScale
-                                    }
-
-                                    property int trayMenuWidth: Tokens.sizes.bar.trayMenuWidth * menu.scaleOffset
-                                    TextMetrics {
-                                        id: labelMetrics
-
-                                        text: item.modelData.text
-                                        font: label.font
-
-                                        elide: Text.ElideRight
-                                        elideWidth: root.popouts.isHorizontal ? trayMenuWidth - (icon.active ? icon.implicitWidth + label.anchors.leftMargin : 0) - (expand.active ? expand.implicitWidth + Tokens.spacing.medium * menu.scaleOffset : 0) : 200 * menu.scaleOffset
-                                    }
-
-                                    Loader {
-                                        id: expand
-
-                                        asynchronous: false
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        anchors.right: parent.right
-
-                                        active: item.modelData.hasChildren
-
-                                        sourceComponent: MaterialIcon {
-                                            text: "chevron_right"
+                                            text: labelMetrics.elidedText
                                             color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                                            fontStyle.pointSize: Tokens.font.icon.medium.pointSize * menu.fontScale
+                                            font.pointSize: Tokens.font.body.medium.pointSize * menu.fontScale
+                                        }
+
+                                        property int trayMenuWidth: Tokens.sizes.bar.trayMenuWidth * menu.scaleOffset
+                                        TextMetrics {
+                                            id: labelMetrics
+
+                                            text: item.modelData.text
+                                            font: label.font
+
+                                            elide: Text.ElideRight
+                                            elideWidth: root.popouts.isHorizontal ? trayMenuWidth - (icon.active ? icon.implicitWidth + label.anchors.leftMargin : 0) - (expand.active ? expand.implicitWidth + Tokens.spacing.medium * menu.scaleOffset : 0) : 200 * menu.scaleOffset
+                                        }
+
+                                        Loader {
+                                            id: expand
+
+                                            asynchronous: false
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.right: parent.right
+
+                                            active: item.modelData.hasChildren
+
+                                            sourceComponent: MaterialIcon {
+                                                text: "chevron_right"
+                                                color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+                                                fontStyle.pointSize: Tokens.font.icon.medium.pointSize * menu.fontScale
+                                            }
                                         }
                                     }
                                 }
@@ -281,6 +307,7 @@ StackView {
                         }
                     }
                 }
+            }
             }
         }
 
