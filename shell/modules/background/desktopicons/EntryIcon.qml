@@ -8,18 +8,16 @@ import qs.components.effects
 import qs.services
 import qs.utils
 
-// The icon of a FileEntry.
+// The icon of a FileEntry, laid out exactly as the fork drew it:
+//   - an application shortcut or an entry with a user-picked icon sits on a
+//     Material You tile at 72% of the tile, keeping its own colours;
+//   - a plain file or folder with no icon of its own is a filled Material
+//     Symbols glyph in the palette's on-container colour;
+//   - a user-picked picture is clipped to a rounded square.
 //
-// Three looks, as in the fork:
-//   - an application shortcut (or an entry whose icon the user picked) is drawn
-//     on a Material You tile, tinted when Material You icons are on;
-//   - a plain file or folder with no icon of its own becomes a single Material
-//     Symbols glyph in the palette colour, with no tile;
-//   - anything else is the full-colour image, clipped to a rounded square when
-//     the icon was chosen from an ordinary picture.
-//
-// The bundled monochrome set only covers applications it has a matching name
-// for, so an image that cannot be loaded falls back to the system icon theme.
+// There is deliberately no colouriser over the artwork: the fork never tinted
+// application icons, and doing so is what flattened QQ, WeChat and bilibili
+// to one colour.
 Item {
     id: root
 
@@ -31,18 +29,12 @@ Item {
 
     readonly property alias status: image.status
 
-    // Only the set's own glyphs (currentColor, i.e. black) need tinting to read;
-    // they appear solely off the tile. Artwork on a tile is an application logo
-    // or a user-picked picture and keeps its colours.
-    readonly property bool tinted: materialYou && !root.failed && !root.onTile
-
-    // An application shortcut, or an entry whose icon the user picked, gets the
-    // Material You tile. Everything else is either a glyph or a bare image.
-    // Decided here rather than in FileEntry so a broken binding there cannot
-    // silently drop the tile: Material You puts every application, and any
-    // entry the user gave an icon to, on a coloured tile.
-    readonly property bool onTile: root.materialYou && ((root.entry?.isDesktopFile ?? false) || ((root.entry?.override?.icon ?? "") !== ""))
-    readonly property bool glyph: (root.entry?.useMonoFileIcon ?? false) && !root.failed
+    // Fork predicates, computed here from the entry so a stale binding in
+    // FileEntry cannot silently drop the tile.
+    readonly property bool hasCustomIcon: (root.entry?.override?.icon ?? "") !== ""
+    readonly property bool usesTile: root.materialYou && ((root.entry?.isDesktopFile ?? false) || root.hasCustomIcon)
+    readonly property bool useMonoFileIcon: root.materialYou && !(root.entry?.isDesktopFile ?? false) && !root.hasCustomIcon
+    readonly property bool roundCustomIcon: (root.entry?.override?.icon ?? "").startsWith("/")
 
     readonly property color tileColour: {
         const c = Colours.palette.m3primaryContainer;
@@ -53,40 +45,38 @@ Item {
     }
     readonly property color glyphColour: Colours.palette.m3onPrimaryContainer
 
-
-    onEntryChanged: root.failed = false
-
+    onEntryChanged: {
+        root.failed = false;
+        root.diag();
+    }
     onMaterialYouChanged: root.failed = false
 
+    // Fork: iconArea is a 64x64 box; the tile fills it and the image sits
+    // centred at 72% when on the tile. Here the box is whatever the caller
+    // sized us to, so the same ratios apply.
     Rectangle {
         id: tile
 
-        anchors.fill: parent
-        radius: width * 0.28
-        visible: root.onTile
+        anchors.centerIn: parent
+        width: parent.width
+        height: parent.height
+        radius: Math.round(width * 20 / 64)
+        visible: root.usesTile
         color: root.tileColour
     }
 
     Image {
         id: image
 
-        anchors.fill: parent
-        anchors.margins: root.onTile ? Math.round(parent.width * 0.16) : 0
+        anchors.centerIn: parent
+        width: root.usesTile ? Math.round(tile.width * 0.72) : parent.width
+        height: width
         source: !root.entry ? "" : root.failed ? root.entry.fallbackIconSource() : root.entry.iconSource(root.materialYou)
         sourceSize.width: width
         sourceSize.height: height
         fillMode: Image.PreserveAspectFit
         asynchronous: true
-        visible: !root.glyph && !clip.active
-        layer.enabled: root.tinted
-        layer.effect: Colouriser {
-            sourceColor: "black"
-            // The set draws currentColor, which resolves to black here, and the
-            // colouriser turns it into a visible glyph: on the tile it has to
-            // contrast with the tile itself, off the tile it takes the primary
-            // colour as upstream does.
-            colorizationColor: root.onTile ? root.glyphColour : Colours.palette.m3primary
-        }
+        visible: !root.useMonoFileIcon
 
         onStatusChanged: {
             if (status === Image.Error && root.materialYou && !root.failed)
@@ -94,41 +84,44 @@ Item {
         }
     }
 
-    // Tinted icons are glyphs, so only full-colour icons get the corners.
+    // Rounded square used to clip a custom icon. It has to be a layered item
+    // of its own: MultiEffect samples the mask texture in the source item's
+    // coordinates, so it must have the same size as the image it masks.
+    Item {
+        id: customIconMask
+
+        anchors.fill: image
+        visible: false
+        layer.enabled: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Math.round(width * 0.28)
+            color: "white"
+        }
+    }
+
     Loader {
         id: clip
 
-        anchors.fill: parent
-        active: root.rounded && !root.tinted && image.status === Image.Ready
+        anchors.fill: image
+        active: root.roundCustomIcon && root.rounded && image.status === Image.Ready
 
         sourceComponent: MultiEffect {
             source: image
             maskEnabled: true
-            maskSource: mask
+            maskSource: customIconMask
             maskThresholdMin: 0.5
             maskSpreadAtMin: 1
         }
     }
 
-    Rectangle {
-        id: mask
-
-        anchors.fill: parent
-        radius: width * 0.24
-        visible: false
-        layer.enabled: true
-        layer.smooth: true
-    }
-
-    // Material Symbols default to the outlined cut, which is too thin to read on
-    // a wallpaper: use the filled one. MaterialIcon builds its own font (family
-    // plus variable axes) and assigning font.pixelSize broke that binding, so
-    // the size comes from the token only.
+    // Material Symbols default to the outlined cut, which is too thin to read
+    // on a wallpaper: use the filled one. MaterialIcon builds its own font
+    // (family plus variable axes); assigning font.pixelSize breaks that.
     MaterialIcon {
         anchors.centerIn: parent
-        width: Math.round(parent.width * 0.62)
-        height: width
-        visible: root.glyph
+        visible: root.useMonoFileIcon
         text: root.entry?.monoFileGlyph ?? ""
         color: root.glyphColour
         fontStyle: Tokens.font.icon.extraLarge

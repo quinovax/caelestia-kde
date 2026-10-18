@@ -38,24 +38,6 @@ Scope {
     /// desktop shortcuts are often symlinks into a root-owned directory.
     readonly property var override: ShortcutOverrides.forPath(path)
 
-    /// A shortcut to a shell script opens in a terminal instead of being handed
-    /// to xdg-open. The link target is checked too: a shortcut is often a
-    /// symlink without the extension (e.g. "HMCL" -> "HMCL-3.17.0.357.sh").
-    /// Material You icons are a per-screen setting, as they were in the fork.
-    /// A FileEntry is created by an Instantiator and does not know its screen, so
-    /// this reads the global default, which is what a single-screen desktop and
-    /// any screen without an override uses.
-    readonly property bool materialYouIcons: GlobalConfig.background.materialYouIconsEnabled
-    /// Whether this entry is drawn on the Material You tile, the way an
-    /// application is: applications always, and any entry whose icon the user
-    /// picked in the details dialog.
-    readonly property bool usesTile: materialYouIcons && (isDesktopFile || ((override?.icon ?? "") !== ""))
-
-    /// Material You mode for folders and files with no icon of their own: just
-    /// the shape, in the palette colour and without an application style tile.
-    /// An icon chosen in the details dialog wins over the default glyph.
-    readonly property bool useMonoFileIcon: materialYouIcons && !isDesktopFile && ((override?.icon ?? "") === "")
-
     /// Material Symbols glyph for this entry (M3 icon language).
     readonly property string monoFileGlyph: {
         if (fileIsDir)
@@ -77,12 +59,9 @@ Scope {
         return "draft";
     }
 
-    /// A custom icon is far more often an ordinary picture (screenshot, photo,
-    /// cover art) than a shaped logo, so it is clipped to a rounded square before
-    /// being drawn. Icons given by name come from the icon theme and are left
-    /// alone.
-    readonly property bool roundCustomIcon: (override?.icon ?? "").startsWith("/")
-
+    /// A shortcut to a shell script opens in a terminal instead of being handed
+    /// to xdg-open. The link target is checked too: a shortcut is often a
+    /// symlink without the extension (e.g. "HMCL" -> "HMCL-3.17.0.357.sh").
     readonly property bool isShellScript: {
         if (fileIsDir)
             return false;
