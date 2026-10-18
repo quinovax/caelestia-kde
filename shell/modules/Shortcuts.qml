@@ -17,11 +17,22 @@ Scope {
     property string lastAction: ""
     readonly property bool hasFullscreen: Kwin.hasFullscreen()
 
+    // The key capture dialog blocks all global shortcuts while it is open. If
+    // the shell dies before it unblocks (crash, SIGTERM from a restart), the
+    // block survives inside kwin_wayland and every physical shortcut goes
+    // dead while the registry still looks perfectly fine. Clear it on every
+    // start so a leftover block can never outlive the dialog.
+    Process {
+        command: ["gdbus", "call", "--session", "--dest=org.kde.kglobalaccel", "--object-path=/kglobalaccel", "--method=org.kde.KGlobalAccel.blockGlobalShortcuts", "false"]
+        running: true
+    }
+
     // `action` ids are the krohnkite
     // kwinscript's own registrations (verified against its contents/ui/shortcuts.qml):
     // keep their exact casing (e.g. "KrohnkitegrowWidth") or KWin will invoke actions
     // it never registered. `key` is the default binding ("" = unbound), overridden by
     // the user's keybinds.json.
+
     readonly property var krohnkiteShortcuts: [
         { name: "krohnkiteFocusUp", description: qsTr("Focus the window above"), action: "KrohnkiteFocusUp", key: "Meta+Up" },
         { name: "krohnkiteFocusDown", description: qsTr("Focus the window below"), action: "KrohnkiteFocusDown", key: "Meta+Down" },
