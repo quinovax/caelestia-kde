@@ -338,12 +338,12 @@
     <message>
         <location line="+7"/>
         <source>Light</source>
-        <translation type="unfinished">浅色</translation>
+        <translation>浅色</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>Dark</source>
-        <translation type="unfinished">深色</translation>
+        <translation>深色</translation>
     </message>
     <message>
         <location line="+28"/>
@@ -418,7 +418,7 @@
     <message>
         <location line="+11"/>
         <source>Mode</source>
-        <translation type="unfinished">模式</translation>
+        <translation>模式</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -693,7 +693,7 @@
     <message>
         <location line="+203"/>
         <source>History</source>
-        <translation type="unfinished">历史记录</translation>
+        <translation>历史</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -855,12 +855,12 @@
     <message>
         <location filename="../modules/launcher/items/AppContextMenu.qml" line="+56"/>
         <source>Unpin from dock</source>
-        <translation type="unfinished">从底座取消固定</translation>
+        <translation>从底座取消固定</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Pin to dock</source>
-        <translation type="unfinished">固定到底座</translation>
+        <translation>固定到底座</translation>
     </message>
     <message>
         <location line="+18"/>
@@ -885,7 +885,7 @@
     <message>
         <location line="+18"/>
         <source>App info</source>
-        <translation type="unfinished">应用信息</translation>
+        <translation>应用信息</translation>
     </message>
 </context>
 <context>
@@ -903,7 +903,7 @@
     <message>
         <location line="+6"/>
         <source>Pin to dock</source>
-        <translation type="unfinished">固定到底座</translation>
+        <translation>固定到底座</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -1986,7 +1986,7 @@
     <message>
         <location line="+1"/>
         <source>Connected</source>
-        <translation type="unfinished">已连接</translation>
+        <translation>已连接</translation>
     </message>
     <message>
         <location line="+2"/>
@@ -2341,7 +2341,7 @@
     <message>
         <location line="+13"/>
         <source>Clock</source>
-        <translation type="unfinished">时钟</translation>
+        <translation>时钟</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -2424,12 +2424,12 @@
     <message>
         <location line="+1"/>
         <source>Ethernet</source>
-        <translation type="unfinished">有线网络</translation>
+        <translation>以太网</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Peripheral battery</source>
-        <translation type="unfinished">外设电池</translation>
+        <translation>外设电量</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -2449,7 +2449,7 @@
     <message>
         <location line="+1"/>
         <source>Add</source>
-        <translation type="unfinished">添加</translation>
+        <translation>添加</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -4666,7 +4666,7 @@
     <message>
         <location line="+6"/>
         <source>Manual</source>
-        <translation type="unfinished">手动</translation>
+        <translation>手动</translation>
     </message>
     <message>
         <location line="+84"/>
@@ -4686,7 +4686,7 @@
     <message>
         <location line="+9"/>
         <source>Gateway</source>
-        <translation type="unfinished">网关</translation>
+        <translation>网关</translation>
     </message>
     <message>
         <location line="+2"/>
@@ -5092,17 +5092,17 @@
     <message>
         <location filename="../modules/nexus/pages/LanguageAndRegion.qml" line="+49"/>
         <source>°C</source>
-        <translation type="unfinished"></translation>
+        <translation>°C</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>°F</source>
-        <translation type="unfinished"></translation>
+        <translation>°F</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>K</source>
-        <translation type="unfinished"></translation>
+        <translation>K</translation>
     </message>
     <message>
         <location line="+8"/>
@@ -5134,7 +5134,7 @@
         <location line="-48"/>
         <location line="+44"/>
         <source>Auto</source>
-        <translation type="unfinished">自动</translation>
+        <translation>自动</translation>
     </message>
     <message>
         <location line="+13"/>
@@ -6130,7 +6130,7 @@
     <message>
         <location line="+14"/>
         <source>Connect</source>
-        <translation type="unfinished">连接</translation>
+        <translation>连接</translation>
     </message>
     <message>
         <location line="+14"/>
@@ -7209,17 +7209,17 @@
     <message>
         <location line="+1"/>
         <source>Font</source>
-        <translation type="unfinished">字体</translation>
+        <translation>字体</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Monospace font</source>
-        <translation type="unfinished">等宽字体</translation>
+        <translation>等宽字体</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Font scale</source>
-        <translation type="unfinished">字体缩放</translation>
+        <translation>字体缩放</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7254,7 +7254,7 @@
     <message>
         <location line="+1"/>
         <source>Wallhaven</source>
-        <translation type="unfinished">Wallhaven</translation>
+        <translation>Wallhaven</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7264,7 +7264,7 @@
     <message>
         <location line="+1"/>
         <source>Slideshow &amp; Order</source>
-        <translation type="unfinished">幻灯片与顺序</translation>
+        <translation>幻灯片与顺序</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7274,7 +7274,7 @@
     <message>
         <location line="+1"/>
         <source>Lock Screen</source>
-        <translation type="unfinished">锁屏</translation>
+        <translation>锁屏</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7369,7 +7369,7 @@
     <message>
         <location line="+1"/>
         <source>Toggle &amp; Rearrange</source>
-        <translation type="unfinished">切换与重排</translation>
+        <translation>切换与重排</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7384,7 +7384,7 @@
     <message>
         <location line="+1"/>
         <source>Greeter</source>
-        <translation type="unfinished">欢迎器</translation>
+        <translation>登录器</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7394,17 +7394,17 @@
     <message>
         <location line="+1"/>
         <source>Tray</source>
-        <translation type="unfinished">托盘</translation>
+        <translation>托盘</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Status icons</source>
-        <translation type="unfinished">状态图标</translation>
+        <translation>状态图标</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Clock</source>
-        <translation type="unfinished">时钟</translation>
+        <translation>时钟</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7414,22 +7414,22 @@
     <message>
         <location line="+1"/>
         <source>Dock</source>
-        <translation type="unfinished">底座</translation>
+        <translation>底座</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>GitHub</source>
-        <translation type="unfinished">GitHub</translation>
+        <translation>GitHub</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Per-element scaling offsets</source>
-        <translation type="unfinished">逐元素缩放偏移</translation>
+        <translation>各元素缩放偏移</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Elements &amp; Modules</source>
-        <translation type="unfinished">元素与模块</translation>
+        <translation>元素与模块</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7439,12 +7439,12 @@
     <message>
         <location line="+1"/>
         <source>Preview scale</source>
-        <translation type="unfinished">预览缩放</translation>
+        <translation>预览缩放</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Performance</source>
-        <translation type="unfinished">性能</translation>
+        <translation>性能</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7454,12 +7454,12 @@
     <message>
         <location line="+1"/>
         <source>Fuzzy search</source>
-        <translation type="unfinished">模糊搜索</translation>
+        <translation>模糊搜索</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Activation</source>
-        <translation type="unfinished">激活</translation>
+        <translation>激活</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7494,12 +7494,12 @@
     <message>
         <location line="+1"/>
         <source>All networks</source>
-        <translation type="unfinished">所有网络</translation>
+        <translation>所有网络</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved networks</source>
-        <translation type="unfinished">已保存的网络</translation>
+        <translation>已保存的网络</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -7519,12 +7519,12 @@
     <message>
         <location line="+1"/>
         <source>Discoverable</source>
-        <translation type="unfinished">可被发现</translation>
+        <translation>可被发现</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Pairable</source>
-        <translation type="unfinished">可被配对</translation>
+        <translation>可配对</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -7629,7 +7629,7 @@
     <message>
         <location line="+1"/>
         <source>Auto-enable rules</source>
-        <translation type="unfinished">自动启用规则</translation>
+        <translation>自动启用规则</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -8173,7 +8173,7 @@
     <message>
         <location line="+1"/>
         <source>Game Mode</source>
-        <translation type="unfinished">游戏模式</translation>
+        <translation>游戏模式</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -8423,7 +8423,7 @@
     <message>
         <location line="+53"/>
         <source>%1 (%2)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1（%2）</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -8862,7 +8862,7 @@
     <message>
         <location line="+5"/>
         <source>Color Picker</source>
-        <translation type="unfinished">取色器</translation>
+        <translation>取色器</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -9321,7 +9321,7 @@
     <message>
         <location line="+38"/>
         <source>General</source>
-        <translation type="unfinished">常规</translation>
+        <translation>常规</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -9346,7 +9346,7 @@
     <message>
         <location line="+11"/>
         <source>Behavior</source>
-        <translation type="unfinished">行为</translation>
+        <translation>行为</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -9371,7 +9371,7 @@
     <message>
         <location line="+14"/>
         <source>Display</source>
-        <translation type="unfinished">显示</translation>
+        <translation>显示</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -9931,145 +9931,145 @@
         <location filename="../services/Units.qml" line="+26"/>
         <source>%1°</source>
         <comment>temperature</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1°</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>%1°F</source>
         <comment>temperature</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1°F</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>%1 K</source>
         <comment>temperature</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 K</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1°C</source>
         <comment>temperature</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1°C</translation>
     </message>
     <message>
         <location line="+12"/>
         <source>%1 B</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 B</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 KB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 KB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 MB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 MB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 GB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 GB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 TB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 TB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 KiB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 KiB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 MiB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 MiB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 GiB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 GiB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 TiB</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 TiB</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 B/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 B/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 KB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 KB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 MB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 MB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 GB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 GB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 TB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 TB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 KiB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 KiB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 MiB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 MiB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 GiB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 GiB/s</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 TiB/s</source>
         <comment>data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 TiB/s</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>%1 %2</source>
         <comment>value and data unit</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 %2</translation>
     </message>
     <message>
         <location line="+36"/>
         <source>%1 / %2</source>
         <comment>used / total amount</comment>
-        <translation type="unfinished"></translation>
+        <translation>%1 / %2</translation>
     </message>
 </context>
 <context>

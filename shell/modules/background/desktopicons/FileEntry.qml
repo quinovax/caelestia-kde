@@ -41,6 +41,48 @@ Scope {
     /// A shortcut to a shell script opens in a terminal instead of being handed
     /// to xdg-open. The link target is checked too: a shortcut is often a
     /// symlink without the extension (e.g. "HMCL" -> "HMCL-3.17.0.357.sh").
+    /// Whether this entry is drawn on the Material You tile (the way an
+    /// application is): applications always, and any entry whose icon the user
+    /// picked in the details dialog.
+    /// Material You icons are a per-screen setting, exactly as in the fork: read
+    /// it straight from the config instead of expecting every caller to pass it
+    /// down, so the tile and the glyph agree with what the user chose.
+    /// Material You icons are a per-screen setting, as they were in the fork.
+    /// A FileEntry is created by an Instantiator and does not know its screen, so
+    /// this reads the global default, which is what a single-screen desktop and
+    /// any screen without an override uses.
+    readonly property bool materialYouIcons: GlobalConfig.background.materialYouIconsEnabled
+    /// the shape, in the palette colour and without an application style tile.
+    /// An icon chosen in the details dialog wins over the default glyph.
+    readonly property bool useMonoFileIcon: materialYouIcons && !isDesktopFile && ((override?.icon ?? "") === "")
+
+    /// Material Symbols glyph for this entry (M3 icon language).
+    readonly property string monoFileGlyph: {
+        if (fileIsDir)
+            return "folder";
+        const ext = fileSuffix.toLowerCase();
+        const groups = {
+            image: ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "avif"],
+            movie: ["mp4", "mkv", "webm", "avi", "mov", "m4v"],
+            music_note: ["mp3", "wav", "flac", "ogg", "m4a", "opus"],
+            folder_zip: ["zip", "tar", "gz", "xz", "rar", "7z", "zst"],
+            picture_as_pdf: ["pdf"],
+            description: ["txt", "md", "log", "json", "yml", "yaml", "toml", "ini", "conf"],
+            code: ["qml", "js", "mjs", "ts", "py", "sh", "c", "h", "cpp", "hpp", "rs", "go", "java", "css", "html"]
+        };
+        for (const glyph in groups) {
+            if (groups[glyph].includes(ext))
+                return glyph;
+        }
+        return "draft";
+    }
+
+    /// A custom icon is far more often an ordinary picture (screenshot, photo,
+    /// cover art) than a shaped logo, so it is clipped to a rounded square before
+    /// being drawn. Icons given by name come from the icon theme and are left
+    /// alone.
+    readonly property bool roundCustomIcon: (override?.icon ?? "").startsWith("/")
+
     readonly property bool isShellScript: {
         if (fileIsDir)
             return false;

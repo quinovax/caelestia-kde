@@ -1621,8 +1621,11 @@ wl-paste --no-newline --type text/uri-list`]
         readonly property real areaWidth: root.width - marginLeft - marginRight
         readonly property real areaHeight: root.height - marginTop - marginBottom
 
-        x: marginLeft + Math.floor((areaWidth - width) / 2)
-        y: marginTop + Math.floor((areaHeight - height) / 2)
+        // The fork packed the desktop from the right: the icon in column 0 sits
+        // against the margin opposite the bar, and rows start at the top. Keep that
+        // arrangement so icons do not jump to the other side of the screen.
+        x: root.width - marginRight - width
+        y: marginTop
         width: root.cols * root.cellWidth
         height: root.rows * root.cellHeight
 
