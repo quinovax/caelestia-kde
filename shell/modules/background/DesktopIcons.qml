@@ -242,9 +242,26 @@ Item {
     }
 
     function arranged(positions: var, newKeys: var): var {
+        // Columns are mirrored (column 0 is the right-most cell), and the packer
+        // fills from column 0 upwards, so the packed result is mirrored back to
+        // keep filling the grid from the right.
+        function mirrorCols(keys: var): var {
+            const packed = Engine.compact(keys, rows, spans);
+            let widest = 0;
+            for (const key in packed)
+                widest = Math.max(widest, packed[key].col + (spanOf(key)?.w ?? 1));
+            const out = {};
+            for (const key in packed)
+                out[key] = {
+                    col: Math.max(0, widest - (spanOf(key)?.w ?? 1) - packed[key].col),
+                    row: packed[key].row
+                };
+            return out;
+        }
+
         if (DesktopLayout.sortKey !== "")
-            return Engine.compact(Engine.sortItems(Object.keys(positions).concat(newKeys).map(describe), DesktopLayout.sortKey).map(i => i.key), rows, spans);
-        return Engine.compact(Engine.orderedKeys(positions, rows).concat(newKeys), rows, spans);
+            return mirrorCols(Engine.sortItems(Object.keys(positions).concat(newKeys).map(describe), DesktopLayout.sortKey).map(i => i.key));
+        return mirrorCols(Engine.orderedKeys(positions, rows).concat(newKeys));
     }
 
     function samePositions(a: var, b: var): bool {

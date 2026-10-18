@@ -179,10 +179,20 @@ Singleton {
             const prefs = data.prefs ?? {};
             if (iconSizes.indexOf(prefs.iconSize) !== -1)
                 iconSize = prefs.iconSize;
-            autoArrange = prefs.autoArrange === true;
+            autoArrange = prefs.autoArrange !== false;
             roundIcons = prefs.roundIcons !== false;
-            sortKey = typeof prefs.sortKey === "string" ? prefs.sortKey : "";
+            // A stored empty sort key means "manual order", which is what the fork
+            // did by leaving icons wherever a cell was free. Sorting by name is the
+            // default now, so an empty key from an older layout is upgraded instead of
+            // silently turning the feature off; anything else the user picked wins.
+            sortKey = typeof prefs.sortKey === "string" && prefs.sortKey !== "" ? prefs.sortKey : "name";
             defaultsSeeded = prefs.defaultsSeeded === true;
+            // Older layouts stored an empty sort key and autoArrange off. Correcting
+            // them here alone would not survive, because nothing else writes the file
+            // until the user moves an icon; persist the corrected values so the sort
+            // actually runs on this start.
+            if (prefs.sortKey !== sortKey || prefs.autoArrange !== autoArrange)
+                Qt.callLater(scheduleSave);
         }
         if (data === null || (!defaultsSeeded && Object.keys(nextWidgets).length === 0))
             defaultsNeeded = true;
