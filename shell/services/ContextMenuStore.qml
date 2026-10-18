@@ -32,7 +32,10 @@ Singleton {
             { id: "wallpaper_style", label: qsTr("Wallpaper & style"), icon: "wallpaper", action: "WindowFactory.create()", enabled: true, type: "default" },
             { id: "system_settings", label: qsTr("System Settings"), icon: "settings", command: "systemsettings", enabled: true, type: "default" },
             { id: "open_terminal", label: qsTr("Open Terminal"), icon: "terminal", command: "terminal", enabled: true, type: "default" },
-            { id: "add_shortcut", label: qsTr("Add Shortcut..."), icon: "add", action: "OpenRightClickMenu", enabled: true, type: "default" }
+            { id: "add_shortcut", label: qsTr("Add Shortcut..."), icon: "add", action: "OpenRightClickMenu", enabled: true, type: "default" },
+            { id: "add_app_shortcut", label: qsTr("Application Shortcut..."), icon: "apps", action: "AddAppShortcut", enabled: true, type: "default" },
+            { id: "add_file_shortcut", label: qsTr("File Shortcut..."), icon: "insert_drive_file", action: "AddFileShortcut", enabled: true, type: "default" },
+            { id: "add_folder_shortcut", label: qsTr("Folder Shortcut..."), icon: "folder", action: "AddFolderShortcut", enabled: true, type: "default" },
         ];
     }
 

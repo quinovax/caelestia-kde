@@ -61,6 +61,12 @@ Controls.Menu {
                     });
                 } else if (entry.action === "OpenTerminal") {
                     Launch.exec([...GlobalConfig.general.apps.terminal]);
+                } else if (entry.action === "AddAppShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "app"]);
+                } else if (entry.action === "AddFolderShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "folder"]);
+                } else if (entry.action === "AddFileShortcut") {
+                    Launch.exec(["caelestia-add-shortcut", "file"]);
                 }
             } else if (entry.command) {
                 if (entry.command === "terminal") {
