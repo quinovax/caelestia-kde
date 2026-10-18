@@ -78,15 +78,26 @@
         {
           "id": "INSTALL_SDDM",
           "type": "boolean",
-          "title": "SDDM greeter theme",
-          "help": "Material You themed login screen with wallpaper and color sync.",
+          "title": "SDDM login theme",
+          "help": "Pick the login screen. The KDE lock screen stays Caelestia either way.",
           "default": true
+        },
+        {
+          "id": "SDDM_THEME",
+          "type": "select",
+          "title": "Login theme",
+          "help": "material-you-dark is the pre-installed Material You greeter (default). caelestia is the bundled greeter with wallpaper and colour sync.",
+          "default": "material-you-dark",
+          "options": [
+            "material-you-dark",
+            "caelestia"
+          ]
         },
         {
           "id": "SDDM_THEME_VARIANT",
           "type": "select",
-          "title": "SDDM theme variant",
-          "help": "Full: clock, system info, quotes, avatar, blur effects. Mini: centered login card, clean and minimal.",
+          "title": "Caelestia SDDM variant",
+          "help": "Only used when the login theme is Caelestia. Full: clock, system info, quotes, avatar, blur effects. Mini: centered login card, clean and minimal.",
           "default": "full",
           "options": [
             "full",

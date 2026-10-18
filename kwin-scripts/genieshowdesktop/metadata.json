@@ -1,0 +1,21 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "quinovax@localhost",
+                "Name": "quinovax"
+            }
+        ],
+        "Description": "Show Desktop with the genie (Magic Lamp) animation: minimizes every normal window so KWin's minimize effect animates them away, and brings them back on the second press. KWin's built-in Show Desktop hides windows without any animation.",
+        "EnabledByDefault": false,
+        "Icon": "video-display",
+        "Id": "genieshowdesktop",
+        "License": "GPL-3.0",
+        "Name": "Genie Show Desktop",
+        "Version": "1.0",
+        "Website": "https://github.com/quinovax/caelestia-kde"
+    },
+    "X-Plasma-API": "declarativescript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "KPackageStructure": "KWin/Script"
+}

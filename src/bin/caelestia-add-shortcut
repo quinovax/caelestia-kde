@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Add a shortcut to the desktop: an installed application, a file, or a folder.
+#
+# Usage: caelestia-add-shortcut app|file|folder
+#
+# Applications are copied as .desktop launchers (that is what the desktop
+# module understands); files and folders become symlinks, so a shortcut never
+# goes stale when the original changes.
+
+set -u
+
+mode="${1:-}"
+
+desktop_dir="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
+[ -d "$desktop_dir" ] || mkdir -p "$desktop_dir" 2>/dev/null || exit 1
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+copy_desktop_file() {
+    local src="$1"
+    [ -f "$src" ] || return 1
+    local base
+    base="$(basename "$src")"
+    cp -f "$src" "$desktop_dir/$base" || return 1
+    chmod +x "$desktop_dir/$base" 2>/dev/null || true
+}
+
+link_path() {
+    local src="$1"
+    [ -e "$src" ] || return 1
+    local base
+    base="$(basename "$src")"
+    ln -sfn "$src" "$desktop_dir/$base" || return 1
+}
+
+case "$mode" in
+    app)
+        # Collect the installed applications. The label goes into a menu, the
+        # id is used to look the path back up so that labels may contain spaces.
+        mapfile -t entries < <(
+            for f in /usr/share/applications/*.desktop \
+                     /usr/local/share/applications/*.desktop \
+                     "$HOME"/.local/share/applications/*.desktop; do
+                [ -f "$f" ] || continue
+                name="$(grep -m1 '^Name=' "$f" 2>/dev/null | cut -d= -f2-)"
+                [ -n "$name" ] || continue
+                case "$name" in
+                    Hidden*) continue ;;
+                esac
+                printf '%s\t%s\n' "$f" "$name"
+            done | sort -t"$(printf '\t')" -k2
+        )
+        [ "${#entries[@]}" -gt 0 ] || exit 1
+
+        args=()
+        for i in "${!entries[@]}"; do
+            args+=("$i" "${entries[$i]#*$'\t'}")
+        done
+
+        if have kdialog; then
+            sel="$(kdialog --title "添加应用快捷方式" --menu "选择要添加到桌面的应用：" "${args[@]}" 2>/dev/null)" || exit 0
+        elif have zenity; then
+            labels=()
+            for e in "${entries[@]}"; do labels+=("${e#*$'\t'}"); done
+            sel="$(printf '%s\n' "${labels[@]}" | zenity --list --title "添加应用快捷方式" --column "应用" 2>/dev/null)" || exit 0
+            for i in "${!entries[@]}"; do
+                [ "${entries[$i]#*$'\t'}" = "$sel" ] && sel="$i" && break
+            done
+        else
+            exit 1
+        fi
+
+        [ -n "$sel" ] || exit 0
+        copy_desktop_file "${entries[$sel]%%$'\t'*}"
+        ;;
+    file)
+        if have kdialog; then
+            src="$(kdialog --title "添加文件快捷方式" --getopenfilename "$HOME" 2>/dev/null)" || exit 0
+        elif have zenity; then
+            src="$(zenity --file-selection --title "添加文件快捷方式" 2>/dev/null)" || exit 0
+        else
+            exit 1
+        fi
+        [ -n "$src" ] || exit 0
+        case "$src" in
+            *.desktop) copy_desktop_file "$src" ;;
+            *) link_path "$src" ;;
+        esac
+        ;;
+    folder)
+        if have kdialog; then
+            src="$(kdialog --title "添加文件夹快捷方式" --getexistingdirectory "$HOME" 2>/dev/null)" || exit 0
+        elif have zenity; then
+            src="$(zenity --file-selection --directory --title "添加文件夹快捷方式" 2>/dev/null)" || exit 0
+        else
+            exit 1
+        fi
+        [ -n "$src" ] || exit 0
+        link_path "$src"
+        ;;
+    *)
+        echo "usage: caelestia-add-shortcut app|file|folder" >&2
+        exit 2
+        ;;
+esac

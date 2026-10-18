@@ -18,8 +18,39 @@ fi
 
 echo
 echo ""
-info "Configuring the Caelestia login screen"
+info "Configuring the SDDM login screen"
 echo ""
+
+# Which SDDM login theme to use.
+#   material-you-dark : the pre-installed Material You SDDM theme. It needs no
+#       build and no wallpaper/colour sync, so we just point SDDM at it and get
+#       out of the way. This is the default for new installs.
+#   caelestia         : the greeter bundled with this repo, with wallpaper and
+#       colour sync. (The KDE lock screen is configured separately and always
+#       stays Caelestia regardless of this choice.)
+SDDM_THEME="${SDDM_THEME:-material-you-dark}"
+case "$SDDM_THEME" in
+    material-you-dark|caelestia) ;;
+    *) die "Unknown SDDM theme: $SDDM_THEME (expected material-you-dark or caelestia)" ;;
+esac
+
+if [[ "$SDDM_THEME" == "material-you-dark" ]]; then
+    THEME_NAME="material-you-dark"
+    INSTALL_DIR="/usr/share/sddm/themes/$THEME_NAME"
+
+    if [[ ! -d "$INSTALL_DIR" ]]; then
+        die "The Material You SDDM theme is not installed at $INSTALL_DIR"
+    fi
+
+    info "Setting SDDM login theme to material-you-dark"
+    caelestia_sudo kwriteconfig6 --file /etc/sddm.conf --group Theme --key Current material-you-dark
+    caelestia_sudo rm -f \
+        /etc/sddm.conf.d/00-kos-theme.conf \
+        /etc/sddm.conf.d/zz-pixie.conf \
+        /etc/sddm.conf.d/zz-caelestia.conf
+    ok "SDDM login theme set to material-you-dark"
+    exit 0
+fi
 
 THEME_NAME="caelestia"
 INSTALL_DIR="/usr/share/sddm/themes/$THEME_NAME"

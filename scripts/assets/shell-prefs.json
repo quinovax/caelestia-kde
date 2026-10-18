@@ -1,0 +1,70 @@
+{
+    "background": {
+        "desktopClock": {
+            "enabled": true,
+            "invertColors": false,
+            "position": "top-left"
+        },
+        "desktopIconsEnabled": true,
+        "desktopLyrics": {
+            "autoHide": false,
+            "enabled": true
+        },
+        "desktopShapes": {
+            "autoHide": false,
+            "enabled": true
+        },
+        "materialYouIconsEnabled": true,
+        "materialYouIconsVibrant": true
+    },
+    "bar": {
+        "dock": {
+            "pinnedApps": [
+                "org.kde.dolphin",
+                "Deepseek Harness Desktop",
+                "apm-qq",
+                "kdesystemsettings",
+                "helium",
+                "kitty"
+            ]
+        },
+        "dodgeWindows": false,
+        "persistent": true,
+        "tray": {
+            "iconSubs": [
+                {
+                    "icon": "",
+                    "id": "title:YYSSR",
+                    "image": "$HOME/.cache/tray_manager_icons/hicolor/256x256/apps/status_3.png"
+                }
+            ],
+            "recolour": false
+        }
+    },
+    "dashboard": {
+        "useMediaShapes": false
+    },
+    "general": {
+        "apps": {
+            "terminal": [
+                "kitty"
+            ]
+        }
+    },
+    "launcher": {
+        "favouriteApps": [
+            "firefox",
+            "org.kde.dolphin",
+            "kitty"
+        ]
+    },
+    "lock": {
+        "blurWallpaper": false
+    },
+    "services": {
+        "smartScheme": false
+    },
+    "overview": {
+        "hoverTopLeft": false
+    }
+}

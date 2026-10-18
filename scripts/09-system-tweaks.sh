@@ -212,6 +212,297 @@ tweak_user_avatar_symlinks() {
     fi
 }
 
+tweak_shell_prefs() {
+    local assets="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/scripts/assets"
+
+    if [[ -f "$assets/shell-prefs.json" ]]; then
+        python3 - "$assets/shell-prefs.json" <<'PYEOF'
+import json
+import os
+import sys
+
+prefs = json.load(open(sys.argv[1]))
+path = os.path.expanduser("~/.config/caelestia/shell.json")
+current = {}
+if os.path.exists(path):
+    current = json.load(open(path))
+
+def merge(base, override):
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            merge(base[key], value)
+        else:
+            base[key] = value
+
+def expand_strings(node):
+    # Values may carry "$HOME" (e.g. the tray icon cache path), including
+    # inside lists, so walk the whole merged tree before writing.
+    if isinstance(node, dict):
+        return {k: expand_strings(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [expand_strings(v) for v in node]
+    if isinstance(node, str):
+        return os.path.expandvars(os.path.expanduser(node))
+    return node
+
+json.dump(expand_strings(current), open(path, "w"), indent=4, ensure_ascii=False)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(current, open(path, "w"), indent=4, ensure_ascii=False)
+print("shell.json preferences merged.")
+PYEOF
+        ok "Caelestia shell preferences applied."
+    else
+        warn "scripts/assets/shell-prefs.json missing; shell preferences skipped."
+    fi
+
+    if [[ -f "$assets/keybinds-prefs.json" ]]; then
+        python3 - "$assets/keybinds-prefs.json" <<'PYEOF'
+import json
+import os
+import sys
+
+prefs = json.load(open(sys.argv[1]))
+path = os.path.expanduser("~/.config/caelestia/keybinds.json")
+current = {}
+if os.path.exists(path):
+    current = json.load(open(path))
+current.update(prefs)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(current, open(path, "w"), indent=4, ensure_ascii=False)
+print("keybinds.json preferences merged.")
+PYEOF
+        ok "Caelestia keybind preferences applied."
+    fi
+}
+
+tweak_material_you_colors() {
+    local venv="$HOME/.local/share/caelestia-venvs/kde-material-you-colors"
+    local bin="$HOME/.local/bin/kde-material-you-colors"
+
+    if ! python3 -c "import dbus" 2>/dev/null; then
+        warn "python3-dbus is missing; install it (dnf install python3-dbus python3-pillow) for kde-material-you-colors."
+        return
+    fi
+
+    if [[ ! -x "$bin" ]]; then
+        info "Installing kde-material-you-colors..."
+        python3 -m venv --system-site-packages "$venv" || { warn "venv creation failed."; return; }
+        "$venv/bin/pip" install -q --upgrade pip >/dev/null 2>&1 || true
+        "$venv/bin/pip" install -q kde-material-you-colors pywal16 || { warn "pip install failed."; return; }
+        ln -sfn "$venv/bin/kde-material-you-colors" "$bin"
+        ok "kde-material-you-colors installed."
+    fi
+
+    mkdir -p "$HOME/.config/autostart"
+    cat > "$HOME/.config/autostart/kde-material-you-colors.desktop" <<EOF
+[Desktop Entry]
+Categories=Utility;
+Comment=Automatic color scheme generator from wallpaper
+Exec=$bin --autostart
+GenericName=Color generator
+Icon=kde-material-you-colors
+Name=KDE Material You Colors
+StartupNotify=false
+Terminal=false
+Type=Application
+X-KDE-StartupNotify=false
+EOF
+    ok "kde-material-you-colors autostart installed."
+}
+
+tweak_cursor_theme() {
+    local icons_dir="$HOME/.local/share/icons"
+    local target="Bibata-Modern-Classic"
+    local url="https://github.com/ful1e5/Bibata_Cursor/releases/latest/download/Bibata-Modern-Classic.tar.xz"
+
+    if [[ ! -d "$icons_dir/$target" ]]; then
+        if command -v curl >/dev/null 2>&1; then
+            local tmp
+            tmp="$(mktemp -d)"
+            if curl -sL -o "$tmp/bibata.tar.xz" "$url" 2>/dev/null; then
+                tar -xf "$tmp/bibata.tar.xz" -C "$tmp" 2>/dev/null
+                if [[ -d "$tmp/$target" ]]; then
+                    mkdir -p "$icons_dir"
+                    cp -r "$tmp/$target" "$icons_dir/"
+                    ok "Bibata cursor theme installed."
+                fi
+            fi
+            rm -rf "$tmp"
+        fi
+    fi
+
+    if [[ -d "$icons_dir/$target" ]]; then
+        kwriteconfig6 --file kdeglobals --group General --key CursorTheme "$target" 2>/dev/null || true
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set org.gnome.desktop.interface cursor-theme "$target" 2>/dev/null || true
+        fi
+        mkdir -p "$HOME/.icons/default"
+        printf "[Icon Theme]\nName=Default\nInherits=%s\n" "$target" > "$HOME/.icons/default/index.theme"
+        ok "Cursor theme set to $target."
+    else
+        warn "Could not install the Bibata cursor theme; keeping the current one."
+    fi
+}
+
+tweak_icon_theme() {
+    local icons_dir="$HOME/.local/share/icons"
+    local target="WhiteSur-dark"
+    local repo="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
+
+    if [[ ! -d "$icons_dir/$target" ]]; then
+        if command -v git >/dev/null 2>&1; then
+            local tmp
+            tmp="$(mktemp -d)"
+            if git clone --depth 1 -q "$repo" "$tmp/whitesur" 2>/dev/null; then
+                mkdir -p "$icons_dir"
+                if [[ -x "$tmp/whitesur/install.sh" ]]; then
+                    (cd "$tmp/whitesur" && ./install.sh -d "$icons_dir" >/dev/null 2>&1) || true
+                fi
+            fi
+            rm -rf "$tmp"
+        fi
+    fi
+
+    if [[ -d "$icons_dir/$target" ]]; then
+        kwriteconfig6 --file kdeglobals --group Icons --key Theme "$target" 2>/dev/null || true
+        if command -v gsettings >/dev/null 2>&1; then
+            gsettings set org.gnome.desktop.interface icon-theme "$target" 2>/dev/null || true
+        fi
+        ok "Icon theme set to $target."
+    else
+        warn "Could not install the WhiteSur icon theme; keeping the current one."
+    fi
+}
+
+tweak_kwin_scripts_and_effects() {
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local scripts_root="${XDG_DATA_HOME:-$HOME/.local/share}/kwin/scripts"
+    local script
+
+    # dwmove is the renamed dynamicworkspaces (new plugin Id: KWin caches the
+    # compiled QML by URL, so a session that already loaded the old Id keeps
+    # running the old code until logout either way).
+    local old_dst="$scripts_root/dynamicworkspaces"
+    if [[ -d "$old_dst" ]]; then
+        # Upgraded from the pre-rename layout: retire the old plugin so both
+        # instances never run their recycle logic at once.
+        info "Retiring pre-rename dynamicworkspaces plugin..."
+        kwriteconfig6 --file kwinrc --group Plugins --key dynamicworkspacesEnabled false 2>/dev/null || true
+        rm -rf "$old_dst" 2>/dev/null || true
+    fi
+
+    for script in dwmove genieshowdesktop; do
+        local src="$bundle/kwin-scripts/$script"
+        local dst="$scripts_root/$script"
+
+        info "Installing KWin script: $script..."
+        if [[ -d "$src" ]]; then
+            mkdir -p "$scripts_root"
+            rm -rf "$dst" 2>/dev/null || true
+            cp -a "$src" "$dst"
+            ok "Installed KWin script: $script"
+        else
+            warn "Missing $src - $script will not be available."
+        fi
+    done
+
+    info "Enabling KWin effects and window rules..."
+    # Magic Lamp is the only effect in KWin's "minimize" exclusive group, so
+    # enabling it (and keeping Squash off) makes the genie animation the
+    # default minimize/restore animation.
+    kwriteconfig6 --file kwinrc --group Plugins --key dwmoveEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key genieshowdesktopEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key rememberwindowpositionsEnabled true 2>/dev/null || true
+    # This setup's look: Caelestia draws its own blur, so KWin's is off.
+    kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key glassEnabled true 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Plugins --key krohnkiteEnabled false 2>/dev/null || true
+    kwriteconfig6 --file kwinrc --group Effect-magiclamp --key AnimationDuration 300 2>/dev/null || true
+
+    # xwaylandvideobridge shows up as a black blob on the desktop; the only
+    # thing a user can do with it is look at it, so hide it everywhere.
+    local group="xwaylandbridge-hide"
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key Description "Hide xwaylandvideobridge (black blob fix)"
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key enabled true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key types 1
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclassmatch 3
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclasscomplete false
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key wmclass '(?i)^xwaylandvideobridge$'
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key acceptfocus false
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key acceptfocusrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key noborder true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key noborderrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityactive 0
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityactiverule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityinactive 0
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key opacityinactiverule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skippager true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skippagerrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skipswitcher true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skipswitcherrule 2
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skiptaskbar true
+    kwriteconfig6 --file kwinrulesrc --group "$group" --key skiptaskbarrule 2
+
+    # kwinrulesrc [General] indexes the rule groups; append ours if missing and
+    # keep count in step with the list.
+    local rules newrules count
+    rules="$(kreadconfig6 --file kwinrulesrc --group General --key rules 2>/dev/null || true)"
+    if [[ ",${rules}," != *",${group},"* ]]; then
+        newrules="${rules:+$rules,}$group"
+        kwriteconfig6 --file kwinrulesrc --group General --key rules "$newrules"
+        count="$(awk -F, '{print NF}' <<<"$newrules")"
+        kwriteconfig6 --file kwinrulesrc --group General --key count "$count"
+    fi
+
+    ok "KWin effects and window rules configured."
+}
+
+tweak_waydroid_apps() {
+    info "Unhiding Waydroid Android apps..."
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local helper="${XDG_BIN_HOME:-$HOME/.local/bin}/caelestia-waydroid-apps"
+
+    if [[ -f "$bundle/src/bin/caelestia-waydroid-apps" ]]; then
+        mkdir -p "$(dirname "$helper")"
+        install -m 0755 "$bundle/src/bin/caelestia-waydroid-apps" "$helper"
+        # Waydroid marks the apps that ship with the image NoDisplay=true, and
+        # Quickshell hides NoDisplay entries before the launcher ever sees them,
+        # so without this the container's Android apps are simply absent.
+        "$helper"
+    else
+        warn "Missing src/bin/caelestia-waydroid-apps - skipping."
+    fi
+}
+
+tweak_kde_shortcuts() {
+    info "Installing and applying global shortcuts..."
+    local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    local helper="${XDG_BIN_HOME:-$HOME/.local/bin}/caelestia-fix-shortcuts"
+
+    if [[ -f "$bundle/src/bin/caelestia-fix-shortcuts" ]]; then
+        mkdir -p "$(dirname "$helper")"
+        install -m 0755 "$bundle/src/bin/caelestia-fix-shortcuts" "$helper"
+    else
+        warn "Missing src/bin/caelestia-fix-shortcuts - skipping."
+        return 0
+    fi
+
+    # Shortcuts live in KWin's memory, not in a config file, so they can only
+    # be written from inside a session. The helper stays installed for
+    # re-applying after an update.
+    if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v gdbus >/dev/null 2>&1; then
+        if "$helper" >/dev/null 2>&1; then
+            ok "Global shortcuts applied."
+        else
+            warn "caelestia-fix-shortcuts reported failures - run it manually to see details."
+        fi
+    else
+        info "No session bus in this step - run '$helper' after logging in."
+    fi
+}
+
 if [[ "${1:-}" == "--list" ]]; then
     echo
     echo "Available tweaks:"
@@ -227,6 +518,13 @@ tweak_no_splash_screen
 tweak_default_shell
 tweak_default_scheme
 tweak_user_avatar_symlinks
+tweak_kwin_scripts_and_effects
+tweak_kde_shortcuts
+tweak_waydroid_apps
+tweak_shell_prefs
+tweak_material_you_colors
+tweak_icon_theme
+tweak_cursor_theme
 tweak_reload_kde
 
 echo

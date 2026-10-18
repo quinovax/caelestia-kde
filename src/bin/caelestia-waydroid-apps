@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Make the Android apps inside the Waydroid container show up in the launcher.
+#
+# Waydroid generates one desktop file per launcher app under
+# ~/.local/share/applications/, but marks the apps that ship with the image
+# (its hardcoded `system_apps` list) with NoDisplay=true. Quickshell's
+# DesktopEntries hides NoDisplay entries before any QML code ever sees them,
+# so those apps are simply absent from the launcher.
+#
+# Waydroid only writes the key when it is not already present
+# (glib_key_file_has_value), so flipping it to an explicit `false` sticks:
+# every later regeneration keeps it false. Re-run this after a `waydroid init`
+# or if a package update restores NoDisplay.
+
+set -euo pipefail
+
+apps_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+
+changed=0
+for f in "$apps_dir"/waydroid.*.desktop; do
+    [[ -e "$f" ]] || continue
+    grep -qiE '^NoDisplay[[:space:]]*=[[:space:]]*true' "$f" || continue
+    sed -i -E 's/^NoDisplay[[:space:]]*=[[:space:]]*true/NoDisplay=false/I' "$f"
+    changed=$((changed + 1))
+done
+
+if [[ $changed -gt 0 ]]; then
+    echo "waydroid: unhid $changed Android app(s) in the launcher"
+    # Let anything caching desktop file ids know they changed.
+    update-desktop-database "$apps_dir" >/dev/null 2>&1 || true
+else
+    echo "waydroid: no hidden Android apps"
+fi
