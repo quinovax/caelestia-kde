@@ -29,12 +29,19 @@ Item {
     property bool rounded: DesktopLayout.roundIcons
     property bool failed: false
 
-    readonly property bool tinted: materialYou && !root.failed && ((root.entry?.appIcon ?? "") === "")
     readonly property alias status: image.status
+
+    // Only the set's own glyphs (currentColor, i.e. black) need tinting to read;
+    // they appear solely off the tile. Artwork on a tile is an application logo
+    // or a user-picked picture and keeps its colours.
+    readonly property bool tinted: materialYou && !root.failed && !root.onTile
 
     // An application shortcut, or an entry whose icon the user picked, gets the
     // Material You tile. Everything else is either a glyph or a bare image.
-    readonly property bool onTile: root.entry?.usesTile ?? false
+    // Decided here rather than in FileEntry so a broken binding there cannot
+    // silently drop the tile: Material You puts every application, and any
+    // entry the user gave an icon to, on a coloured tile.
+    readonly property bool onTile: root.materialYou && ((root.entry?.isDesktopFile ?? false) || ((root.entry?.override?.icon ?? "") !== ""))
     readonly property bool glyph: (root.entry?.useMonoFileIcon ?? false) && !root.failed
 
     readonly property color tileColour: {
@@ -48,6 +55,7 @@ Item {
 
 
     onEntryChanged: root.failed = false
+
     onMaterialYouChanged: root.failed = false
 
     Rectangle {
@@ -63,7 +71,7 @@ Item {
         id: image
 
         anchors.fill: parent
-        anchors.margins: root.onTile ? Math.round(width * 0.14) : 0
+        anchors.margins: root.onTile ? Math.round(parent.width * 0.16) : 0
         source: !root.entry ? "" : root.failed ? root.entry.fallbackIconSource() : root.entry.iconSource(root.materialYou)
         sourceSize.width: width
         sourceSize.height: height
@@ -73,7 +81,11 @@ Item {
         layer.enabled: root.tinted
         layer.effect: Colouriser {
             sourceColor: "black"
-            colorizationColor: root.tileColour
+            // The set draws currentColor, which resolves to black here, and the
+            // colouriser turns it into a visible glyph: on the tile it has to
+            // contrast with the tile itself, off the tile it takes the primary
+            // colour as upstream does.
+            colorizationColor: root.onTile ? root.glyphColour : Colours.palette.m3primary
         }
 
         onStatusChanged: {
