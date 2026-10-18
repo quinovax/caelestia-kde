@@ -193,7 +193,7 @@ Item {
             return false;
         if (openGroupId !== "")
             return true;
-        const c = Math.floor((x - gridItem.x) / cellWidth);
+        const c = gridItem.colAt(x - gridItem.x);
         const r = Math.floor((y - gridItem.y) / cellHeight);
         const occ = cellOccupant(c, r, []);
         if (occ === "")
@@ -335,9 +335,21 @@ Item {
 
         const occ = Engine.occupancy(positions, null, spans);
         const newKeys = [];
-        for (const key of desired) {
-            if (key in positions)
-                continue;
+
+        // Keys with no place yet. With a sort key set they are placed in sorted
+        // order, so a new file lands after the ones already there instead of
+        // wherever the first free hole happens to be.
+        const unplaced = desired.filter(k => !(k in positions));
+        let placed = unplaced;
+        if (DesktopLayout.sortKey !== "") {
+            const order = {};
+            Engine.sortItems(unplaced.map(describe), DesktopLayout.sortKey).forEach((i, rank) => {
+                order[i.key] = rank;
+            });
+            placed = unplaced.slice().sort((a, b) => (order[a] ?? 0) - (order[b] ?? 0));
+        }
+
+        for (const key of placed) {
             const name = nameOf(key);
             const wanted = pendingPlacements[name];
             let cell;
@@ -1101,7 +1113,7 @@ Item {
 
     function cellAt(x: real, y: real): var {
         return {
-            col: Math.max(0, Math.min(cols - 1, Math.floor((x - gridItem.x) / cellWidth))),
+             col: gridItem.colAt(x - gridItem.x),
             row: Math.max(0, Math.min(rows - 1, Math.floor((y - gridItem.y) / cellHeight)))
         };
     }
@@ -1115,7 +1127,7 @@ Item {
         const gx = x - gridItem.x;
         const gy = y - gridItem.y;
         const cell = {
-            col: Math.max(0, Math.min(cols - 1, Math.floor(gx / cellWidth))),
+             col: gridItem.colAt(gx),
             row: Math.max(0, Math.min(rows - 1, Math.floor(gy / cellHeight)))
         };
         const moving = internal && dragGroup === "" ? dragKeys : [];
@@ -1123,7 +1135,7 @@ Item {
         // Large items land where their top-left corner is closest to, not
         // where the pointer is, so they stay under the dragged image.
         const place = moving.length > 0 && isBigKey(dragAnchor) ? {
-            col: Math.max(0, Math.min(cols - 1, Math.round((gx - dragHotSpot.x) / cellWidth))),
+             col: Math.max(0, Math.min(cols - 1, Math.round(root.cols - 1 - (gx - dragHotSpot.x) / cellWidth))),
             row: Math.max(0, Math.min(rows - 1, Math.round((gy - dragHotSpot.y) / cellHeight)))
         } : cell;
         const plan = { cell, place, target, mode: "place", dest: "" };
@@ -1146,7 +1158,7 @@ Item {
         }
 
         const tile = tiles[target];
-        if (!tile || !tile.overIcon(gx - cell.col * cellWidth, gy - cell.row * cellHeight))
+         if (!tile || !tile.overIcon(gridItem.cellXFor(cell.col) + (gx - cell.col * cellWidth), gy - cell.row * cellHeight))
             return plan;
         const targetEntry = entryOf(target);
         if (targetEntry?.fileIsDir) {
@@ -1525,7 +1537,7 @@ wl-paste --no-newline --type text/uri-list`]
                 if (!active)
                     return;
                 const r = band.rect();
-                const hit = Engine.keysInRect(root.contextPositionsTopLevel(), Qt.rect(r.x - gridItem.x, r.y - gridItem.y, r.width, r.height), root.cellWidth, root.cellHeight, Tokens.padding.small, root.spans);
+                const hit = Engine.keysInRect(root.contextPositionsTopLevel(), Qt.rect(r.x - gridItem.x, r.y - gridItem.y, r.width, r.height), root.cellWidth, root.cellHeight, Tokens.padding.small, root.spans, root.cols);
                 const next = Object.assign({}, bandArea.base);
                 for (const k of hit)
                     if (root.iconsEnabled || root.isWidgetKey(k))
@@ -1616,18 +1628,28 @@ wl-paste --no-newline --type text/uri-list`]
         readonly property int marginRight: Config.bar.position === "right" ? baseMargin + barZone : baseMargin
         readonly property int marginTop: Config.bar.position === "top" ? baseMargin + barZone : baseMargin
         readonly property int marginBottom: Config.bar.position === "bottom" ? baseMargin + barZone : baseMargin
-        // Space the cells may use. Only whole cells fit, so the grid is centred in it
-        // and the leftover is split between both sides instead of all going right and down.
+        // The grid fills the area and columns are counted from the right, as they
+        // were in the fork: the icon in column 0 sits against the margin opposite
+        // the bar and rows start at the top. cellXFor() mirrors the column, so a
+        // saved layout keeps meaning what it meant before.
         readonly property real areaWidth: root.width - marginLeft - marginRight
         readonly property real areaHeight: root.height - marginTop - marginBottom
 
-        // The fork packed the desktop from the right: the icon in column 0 sits
-        // against the margin opposite the bar, and rows start at the top. Keep that
-        // arrangement so icons do not jump to the other side of the screen.
-        x: root.width - marginRight - width
+        x: marginLeft
         y: marginTop
-        width: root.cols * root.cellWidth
-        height: root.rows * root.cellHeight
+        width: areaWidth
+        height: areaHeight
+
+        // Column 0 is the right-most one, so the pixel x of a column is measured
+        // from the right edge of the grid.
+        function cellXFor(col: int): real {
+            return (root.cols - 1 - col) * root.cellWidth;
+        }
+
+        // Inverse of cellXFor: the column a pixel x inside the grid belongs to.
+        function colAt(x: real): int {
+            return Math.max(0, Math.min(root.cols - 1, root.cols - 1 - Math.floor(x / root.cellWidth)));
+        }
 
         // Where the dragged items would land.
         Repeater {
@@ -1636,7 +1658,7 @@ wl-paste --no-newline --type text/uri-list`]
             StyledRect {
                 required property var modelData
 
-                x: modelData.col * root.cellWidth + Tokens.padding.small / 2
+                x: gridItem.cellXFor(modelData.col) + Tokens.padding.small / 2
                 y: modelData.row * root.cellHeight + Tokens.padding.small / 2
                 width: (modelData.w ?? 1) * root.cellWidth - Tokens.padding.small
                 height: (modelData.h ?? 1) * root.cellHeight - Tokens.padding.small
@@ -1659,7 +1681,7 @@ wl-paste --no-newline --type text/uri-list`]
                 visible: (!isGroup || root.iconsEnabled) && pos !== null
                 width: span.w * root.cellWidth
                 height: span.h * root.cellHeight
-                x: (pos?.col ?? 0) * root.cellWidth
+                x: gridItem.cellXFor(pos?.col ?? 0)
                 y: (pos?.row ?? 0) * root.cellHeight
                 z: resizing ? 3 : 0
                 selected: root.selection[key] === true && root.openGroupId === ""
@@ -1722,7 +1744,7 @@ wl-paste --no-newline --type text/uri-list`]
                 visible: root.iconsEnabled && pos !== null
                 width: root.cellWidth
                 height: root.cellHeight
-                x: (pos?.col ?? 0) * root.cellWidth
+                x: gridItem.cellXFor(pos?.col ?? 0)
                 y: (pos?.row ?? 0) * root.cellHeight
                 z: selected ? 2 : 1
                 iconSize: root.iconSize

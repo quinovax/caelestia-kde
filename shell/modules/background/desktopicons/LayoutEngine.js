@@ -302,12 +302,13 @@ function rangeBetween(positions, a, b, rows) {
 }
 
 // Keys whose rectangle intersects the given pixel rectangle.
-function keysInRect(positions, rect, cellWidth, cellHeight, inset, spans) {
+function keysInRect(positions, rect, cellWidth, cellHeight, inset, spans, cols) {
     const out = [];
     for (const key in positions) {
         const p = positions[key];
         const s = spanOf(spans, key);
-        const x = p.col * cellWidth + inset;
+        // Columns mirror: column 0 is the right-most cell in the grid.
+        const x = (cols - 1 - p.col) * cellWidth + inset;
         const y = p.row * cellHeight + inset;
         const w = s.w * cellWidth - inset * 2;
         const h = s.h * cellHeight - inset * 2;

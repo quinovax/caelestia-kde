@@ -27,7 +27,10 @@ Singleton {
     // Clip full-colour icons to a rounded square.
     property bool roundIcons: true
     // "" keeps the manual order; otherwise name, type, modified or size.
-    property string sortKey: ""
+    // The fork left an icon wherever a free cell was found, which made a new
+    // file land in the middle of an arrangement the user had already made.
+    // Sorting by name is the least surprising default.
+    property string sortKey: "name"
     property bool defaultsSeeded: false
     property bool defaultsNeeded: false
 

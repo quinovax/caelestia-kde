@@ -29,12 +29,12 @@ Item {
     property bool rounded: DesktopLayout.roundIcons
     property bool failed: false
 
-    readonly property bool tinted: materialYou && !root.failed
+    readonly property bool tinted: materialYou && !root.failed && ((root.entry?.appIcon ?? "") === "")
     readonly property alias status: image.status
 
     // An application shortcut, or an entry whose icon the user picked, gets the
     // Material You tile. Everything else is either a glyph or a bare image.
-    readonly property bool onTile: (root.entry?.usesTile ?? false) && !root.failed
+    readonly property bool onTile: root.entry?.usesTile ?? false
     readonly property bool glyph: (root.entry?.useMonoFileIcon ?? false) && !root.failed
 
     readonly property color tileColour: {
