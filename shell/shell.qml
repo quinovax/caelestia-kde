@@ -23,6 +23,7 @@ import "services" as Services
 import "modules"
 import "modules/drawers"
 import "modules/background"
+import "modules/polkit"
 import "modules/screenshot/regionSelector"
 import "modules/overview"
 import "modules/whatsnew" as WhatsNew
@@ -132,6 +133,7 @@ ShellRoot {
     Services.StartupTasks {}
     WhatsNew.WhatsNewWindow {}
     ShortcutDetailsWindow {}
+    PolkitModule {}
 
     Process {
         id: bbdxCheckProcess
