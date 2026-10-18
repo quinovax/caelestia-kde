@@ -34,7 +34,23 @@ Scope {
     property string desktopIcon: ""
     property var desktopCategories: []
 
+    /// User overrides live next to the shortcut, not in the .desktop file:
+    /// desktop shortcuts are often symlinks into a root-owned directory.
+    readonly property var override: ShortcutOverrides.forPath(path)
+
+    /// A shortcut to a shell script opens in a terminal instead of being handed
+    /// to xdg-open. The link target is checked too: a shortcut is often a
+    /// symlink without the extension (e.g. "HMCL" -> "HMCL-3.17.0.357.sh").
+    readonly property bool isShellScript: {
+        if (fileIsDir)
+            return false;
+        return [fileName, filePath].some(n => /\.(sh|bash|zsh)$/i.test(n ?? ""));
+    }
+
     readonly property string displayName: {
+        const custom = override?.name ?? "";
+        if (custom !== "")
+            return custom;
         if (!isDesktopFile)
             return fileName;
         if (desktopNameFound)
@@ -54,6 +70,9 @@ Scope {
     readonly property var categories: desktopCategories.length > 0 ? desktopCategories : (desktopEntry?.categories ?? [])
 
     readonly property string iconName: {
+        const custom = override?.icon ?? "";
+        if (custom !== "")
+            return custom;
         if (fileIsDir)
             return "folder";
         if (isDesktopFile)
@@ -104,6 +123,21 @@ Scope {
     }
 
     function launch(): void {
+        // A user-given command wins: the details dialog can point a shortcut at
+        // something other than the file it sits on.
+        const custom = override?.exec ?? "";
+        if (custom !== "") {
+            Launch.exec(custom.split(" "));
+            return;
+        }
+        // Shell scripts are watched rather than run silently: they run in the
+        // shell's own terminal tab, which keeps the output visible. Without that
+        // tab, fall back to the external terminal.
+        if (isShellScript) {
+            const runner = `${Quickshell.shellDir}/assets/run_script_in_terminal.sh`;
+            Launch.exec([...GlobalConfig.general.apps.terminal, runner, path]);
+            return;
+        }
         // Run the launcher file itself: its name need not match an installed app id,
         // and xdg-open would open it in an editor instead.
         if (isDesktopFile)

@@ -87,6 +87,24 @@ Controls.Menu {
             onClicked: root.togglePinToDock()
         },
         Controls.MenuItem {
+            text: qsTr("Details")
+            icon: "info"
+            visible: root.single && root.firstEntry !== null
+            onClicked: {
+                const entry = root.firstEntry;
+                ShortcutDetails.show({
+                    path: entry.path,
+                    fileName: entry.fileName,
+                    kind: entry.kind,
+                    executable: entry.isDesktopFile,
+                    iconSource: entry.iconSource(false),
+                    entryName: entry.displayName,
+                    entryIcon: entry.appIcon,
+                    entryExec: entry.desktopEntry?.execString ?? ""
+                });
+            }
+        },
+        Controls.MenuItem {
             text: qsTr("Rename")
             icon: "edit"
             visible: root.single && !root.hasWidgets

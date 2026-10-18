@@ -131,6 +131,7 @@ ShellRoot {
 
     Services.StartupTasks {}
     WhatsNew.WhatsNewWindow {}
+    ShortcutDetailsWindow {}
 
     Process {
         id: bbdxCheckProcess
