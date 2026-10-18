@@ -157,8 +157,10 @@ Scope {
         if (appIcon !== "") {
             if (appIcon.startsWith("/"))
                 return "file://" + appIcon;
-            if (materialYou)
-                return setBase + "/apps/scalable/" + appIcon + ".svg";
+            // An application keeps its own full-colour artwork even in Material
+            // You mode, exactly as the fork did: the tile behind it is tinted, the
+            // icon is not. The monochrome set only replaces plain file and folder
+            // glyphs, never an application's logo.
             return Quickshell.iconPath(appIcon, "application-x-executable");
         }
         if (materialYou) {

@@ -385,7 +385,17 @@ Item {
             Engine.markRect(occ, cell, span, key);
         }
 
-        const next = DesktopLayout.autoArrange ? arranged(positions, newKeys) : positions;
+        // One-time arrange for a layout that predates the sort default: sort the
+        // whole desktop now, then leave it alone so icons and widgets stay
+        // freely placeable. Without autoArrange on, dragging must not repack.
+        let next = DesktopLayout.autoArrange ? arranged(positions, newKeys) : positions;
+        if (DesktopLayout.initialArrangePending) {
+            DesktopLayout.initialArrangePending = false;
+            // Every desired key is in `positions` by now, so this is a full sort:
+            // one tidy arrangement on the first start after the default changed,
+            // then the user is free to place anything anywhere again.
+            next = arranged(positions, []);
+        }
 
         if (groupsChanged)
             DesktopLayout.setGroups(groups);

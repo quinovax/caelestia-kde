@@ -31,6 +31,8 @@ Singleton {
     // file land in the middle of an arrangement the user had already made.
     // Sorting by name is the least surprising default.
     property string sortKey: "name"
+    // Set when a pre-sort layout should be arranged once on this start.
+    property bool initialArrangePending: false
     property bool defaultsSeeded: false
     property bool defaultsNeeded: false
 
@@ -179,19 +181,22 @@ Singleton {
             const prefs = data.prefs ?? {};
             if (iconSizes.indexOf(prefs.iconSize) !== -1)
                 iconSize = prefs.iconSize;
-            autoArrange = prefs.autoArrange !== false;
+            autoArrange = prefs.autoArrange === true;
             roundIcons = prefs.roundIcons !== false;
             // A stored empty sort key means "manual order", which is what the fork
             // did by leaving icons wherever a cell was free. Sorting by name is the
             // default now, so an empty key from an older layout is upgraded instead of
             // silently turning the feature off; anything else the user picked wins.
-            sortKey = typeof prefs.sortKey === "string" && prefs.sortKey !== "" ? prefs.sortKey : "name";
+            const storedSort = typeof prefs.sortKey === "string" ? prefs.sortKey : "";
+            sortKey = storedSort !== "" ? storedSort : "name";
             defaultsSeeded = prefs.defaultsSeeded === true;
-            // Older layouts stored an empty sort key and autoArrange off. Correcting
-            // them here alone would not survive, because nothing else writes the file
-            // until the user moves an icon; persist the corrected values so the sort
-            // actually runs on this start.
-            if (prefs.sortKey !== sortKey || prefs.autoArrange !== autoArrange)
+            // A layout saved before the sort default gets one sorted arrangement on
+            // this start; autoArrange stays off so icons and widgets remain freely
+            // placeable afterwards. The flag is transient: it is consumed by the
+            // first syncEntries, never written to disk.
+            if (storedSort === "" && Object.keys(nextPositions).length > 0)
+                initialArrangePending = true;
+            if (storedSort !== sortKey)
                 Qt.callLater(scheduleSave);
         }
         if (data === null || (!defaultsSeeded && Object.keys(nextWidgets).length === 0))
