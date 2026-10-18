@@ -73,6 +73,8 @@ Singleton {
         writeProc.running = true;
     }
 
+    Component.onCompleted: readProc.running = true
+
     Process {
         id: readProc
 
@@ -103,6 +105,4 @@ Singleton {
             root.storePath, jsonContent
         ]
     }
-
-    Component.onCompleted: readProc.running = true
 }

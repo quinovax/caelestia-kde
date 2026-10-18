@@ -34,6 +34,7 @@ Scope {
             readonly property var details: ShortcutDetails
             readonly property bool isApp: details.kind === "application"
 
+
             function kindLabel(): string {
                 if (details.kind === "application")
                     return qsTr("Application shortcut");
@@ -41,16 +42,6 @@ Scope {
                     return qsTr("Folder link");
                 return qsTr("File link");
             }
-
-            color: Colours.tPalette.m3surface
-            title: qsTr("Shortcut details")
-            implicitWidth: 460
-            implicitHeight: column.implicitHeight + Tokens.padding.extraLarge * 2
-
-            // Tokens/Config are per-screen singletons and have to be told which
-            // screen the window lives on (same as StyledWindow does).
-            contentItem.Config.screen: screen.name
-            contentItem.Tokens.screen: screen.name
 
             function syncFields(): void {
                 const override = ShortcutOverrides.forPath(details.path) ?? {};
@@ -68,6 +59,16 @@ Scope {
                     nameField.selectAll();
                 });
             }
+
+            // Tokens/Config are per-screen singletons and have to be told which
+            // screen the window lives on (same as StyledWindow does).
+            color: Colours.tPalette.m3surface
+            title: qsTr("Shortcut details")
+            implicitWidth: 460
+            implicitHeight: column.implicitHeight + Tokens.padding.extraLarge * 2
+
+            contentItem.Config.screen: screen.name
+            contentItem.Tokens.screen: screen.name
 
             Component.onCompleted: {
                 syncFields();
