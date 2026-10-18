@@ -94,8 +94,22 @@ Scope {
     }
 
     // Launcher icon name or absolute path, empty for plain files.
-    readonly property string appIcon: isDesktopFile ? (desktopEntry?.icon || desktopIcon) : ""
+    // Launcher icon name or absolute path, empty for plain files. A user-set icon
+    // wins, and is treated like any other icon below: a path stays a path, a name
+    // is resolved through the icon theme.
+    readonly property string appIcon: {
+        const custom = override?.icon ?? "";
+        if (custom !== "")
+            return custom;
+        return isDesktopFile ? (desktopEntry?.icon || desktopIcon) : "";
+    }
 
+    /// Where to find the tile's image.
+    ///
+    /// The Material You look is the bundled monochrome set, but it only covers
+    /// the applications that ship with a matching name. Anything it does not
+    /// have (a distro package, a Chinese app, an AppImage) has to fall back to
+    /// the system icon theme rather than render a blank tile.
     function iconSource(materialYou: bool): string {
         const setBase = Qt.resolvedUrl(Quickshell.shellDir + "/assets/icons/yet-another-monochrome-icon-set");
         if (appIcon !== "") {
@@ -113,14 +127,17 @@ Scope {
         return "image://icon/" + iconName;
     }
 
+    /// Image used when the one iconSource names cannot be loaded: the same
+    /// icon name through the theme, and if the theme has nothing either, the
+    /// generic text document icon that every icon theme ships. Without this the
+    /// tile stays blank until the set is updated.
     function fallbackIconSource(): string {
-        if (appIcon !== "") {
-            if (appIcon.startsWith("/"))
-                return "file://" + appIcon;
-            return Quickshell.iconPath(appIcon, "application-x-executable");
-        }
-        return "image://icon/" + iconName;
+        const themed = Quickshell.iconPath(iconName);
+        if (themed !== "")
+            return "image://icon/" + iconName;
+        return "image://icon/text-x-generic";
     }
+
 
     function launch(): void {
         // A user-given command wins: the details dialog can point a shortcut at
