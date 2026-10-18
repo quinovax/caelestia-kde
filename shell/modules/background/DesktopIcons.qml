@@ -242,26 +242,59 @@ Item {
     }
 
     function arranged(positions: var, newKeys: var): var {
-        // Columns are mirrored (column 0 is the right-most cell), and the packer
-        // fills from column 0 upwards, so the packed result is mirrored back to
-        // keep filling the grid from the right.
-        function mirrorCols(keys: var): var {
-            const packed = Engine.compact(keys, rows, spans);
-            let widest = 0;
-            for (const key in packed)
-                widest = Math.max(widest, packed[key].col + (spanOf(key)?.w ?? 1));
-            const out = {};
-            for (const key in packed)
-                out[key] = {
-                    col: Math.max(0, widest - (spanOf(key)?.w ?? 1) - packed[key].col),
-                    row: packed[key].row
-                };
-            return out;
+        // Widgets keep the cell they already have: they are not icons and never
+        // take part in the packing. The fork had no widget layer at all, and
+        // letting the clock sort in front of the files pushed every icon into
+        // one row along the top instead of filling the right-hand columns.
+        const out = {};
+        const occ = {};
+        const mark = (c, r, w, h) => {
+            for (let cc = c; cc < c + w; cc++)
+                for (let rr = r; rr < r + h; rr++)
+                    occ[cc + ":" + rr] = true;
+        };
+        const allKeys = Object.keys(positions).concat(newKeys);
+        const widgetKeys = allKeys.filter(k => isWidgetKey(k) && positions[k]);
+        const iconKeys = allKeys.filter(k => !isWidgetKey(k));
+
+        for (const key of widgetKeys) {
+            const pos = positions[key];
+            out[key] = { col: pos.col, row: pos.row };
+            const ws = spanOf(key);
+            mark(pos.col, pos.row, ws.w ?? 1, Math.min(ws.h ?? 1, rows));
         }
 
-        if (DesktopLayout.sortKey !== "")
-            return mirrorCols(Engine.sortItems(Object.keys(positions).concat(newKeys).map(describe), DesktopLayout.sortKey).map(i => i.key));
-        return mirrorCols(Engine.orderedKeys(positions, rows).concat(newKeys));
+        // The fork's findFreeCell walk, verbatim: column 0 is the right-most
+        // one (cellXFor mirrors it), and a column fills top to bottom before
+        // the next column to its left is used.
+        const sorted = DesktopLayout.sortKey !== ""
+            ? Engine.sortItems(iconKeys.map(describe), DesktopLayout.sortKey).map(i => i.key)
+            : Engine.orderedKeys(positions, rows).filter(k => !isWidgetKey(k)).concat(newKeys.filter(k => !isWidgetKey(k)));
+        const freeAt = (c, r, w, h) => {
+            if (r + h > rows || c + w > cols)
+                return false;
+            for (let cc = c; cc < c + w; cc++)
+                for (let rr = r; rr < r + h; rr++)
+                    if (occ[cc + ":" + rr])
+                        return false;
+            return true;
+        };
+        for (const key of sorted) {
+            const ks = spanOf(key);
+            const w = ks.w ?? 1;
+            const h = Math.min(ks.h ?? 1, rows);
+            let placed = false;
+            for (let c = 0; c < cols && !placed; c++)
+                for (let r = 0; r < rows && !placed; r++)
+                    if (freeAt(c, r, w, h)) {
+                        out[key] = { col: c, row: r };
+                        mark(c, r, w, h);
+                        placed = true;
+                    }
+            if (!placed)
+                out[key] = { col: 0, row: rows };
+        }
+        return out;
     }
 
     function samePositions(a: var, b: var): bool {
