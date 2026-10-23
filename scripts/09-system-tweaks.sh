@@ -44,18 +44,24 @@ tweak_five_desktops() {
 tweak_remove_panels() {
     if ! first_install; then
         skip "Not a first install - leaving Plasma panels alone."
-        return 0
-    fi
-    info "Removing KDE Plasma panels..."
+    else
+        info "Removing KDE Plasma panels..."
 
-    if qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
-        "var p = panels(); for (var i = 0; i < p.length; i++) { p[i].remove(); }" \
-        2>/dev/null; then
-        ok "KDE panels removed."
-        return 0
+        if qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+            "var p = panels(); for (var i = 0; i < p.length; i++) { p[i].remove(); }" \
+            2>/dev/null; then
+            ok "KDE panels removed."
+        else
+            remove_panels_from_config || warn "Failed to remove KDE panels from config."
+            ok "KDE panels removed."
+        fi
     fi
 
-    python3 - <<'EOF' || warn "Failed to remove KDE panels from config."
+    hide_kde_desktop_icons
+}
+
+remove_panels_from_config() {
+    python3 - <<'EOF'
 import os
 import re
 
@@ -103,8 +109,88 @@ with open(path, "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")
 print(f"Removed {len(panel_ids)} KDE panel(s)")
 EOF
+}
 
-    ok "KDE panels removed."
+# The desktop containment is a Folder View: it draws ~/Desktop itself.
+# Caelestia draws those icons, so the two layers overlap and Plasma wins
+# because it is the actual desktop. Point the Folder View at an empty
+# directory so Plasma keeps the wallpaper while Caelestia supplies the icons.
+hide_kde_desktop_icons() {
+    local empty_dir="${XDG_DATA_HOME:-$HOME/.local/share}/caelestia/empty-desktop"
+    mkdir -p "$empty_dir"
+    local empty_url="file://$empty_dir"
+
+    if qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+        "var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].currentConfigGroup = ['General']; d[i].writeConfig('url', '$empty_url'); d[i].writeConfig('labelMode', 0); d[i].reloadConfig(); }" \
+        2>/dev/null; then
+        ok "KDE desktop icons hidden (Caelestia draws them)."
+        return 0
+    fi
+
+    python3 - "$empty_url" <<'EOF' || { warn "Failed to hide the KDE desktop icons."; return 1; }
+import os
+import re
+import sys
+
+url = sys.argv[1]
+path = os.path.expanduser("~/.config/plasma-org.kde.plasma.desktop-appletsrc")
+if not os.path.exists(path):
+    raise SystemExit(0)
+
+lines = open(path, "r", encoding="utf-8").read().splitlines()
+
+desktop_id = None
+current = None
+is_desktop = False
+for line in lines:
+    s = line.strip()
+    m = re.match(r"^\[Containments\]\[(\d+)\]$", s)
+    if m:
+        current = m.group(1)
+        is_desktop = False
+    elif current is not None and s == "formfactor=0":
+        is_desktop = True
+    elif current is not None and is_desktop and re.match(r"^plugin\s*=", s):
+        desktop_id = current
+
+if desktop_id is None:
+    raise SystemExit(0)
+
+general = f"[Containments][{desktop_id}][Configuration][General]"
+out = []
+seen_general = False
+in_general = False
+for line in lines:
+    s = line.strip()
+    if s == general:
+        seen_general = True
+        in_general = True
+        out.append(line)
+        out.append(f"url={url}")
+        out.append("labelMode=0")
+        continue
+    if in_general:
+        if s.startswith("["):
+            in_general = False
+            out.append(line)
+        elif s.startswith("url=") or s.startswith("labelMode="):
+            continue
+        else:
+            out.append(line)
+        continue
+    out.append(line)
+
+if not seen_general:
+    out.append("")
+    out.append(general)
+    out.append(f"url={url}")
+    out.append("labelMode=0")
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write("\n".join(out) + "\n")
+print("KDE desktop icons hidden in the containment config")
+EOF
+    ok "KDE desktop icons hidden (Caelestia draws them)."
 }
 
 tweak_no_splash_screen() {
