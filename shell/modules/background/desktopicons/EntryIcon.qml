@@ -45,10 +45,7 @@ Item {
     }
     readonly property color glyphColour: Colours.palette.m3onPrimaryContainer
 
-    onEntryChanged: {
-        root.failed = false;
-        root.diag();
-    }
+    onEntryChanged: root.failed = false
     onMaterialYouChanged: root.failed = false
 
     // Fork: iconArea is a 64x64 box; the tile fills it and the image sits
