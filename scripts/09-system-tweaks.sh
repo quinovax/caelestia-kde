@@ -111,29 +111,62 @@ print(f"Removed {len(panel_ids)} KDE panel(s)")
 EOF
 }
 
-# The desktop containment is a Folder View: it draws ~/Desktop itself.
-# Caelestia draws those icons, so the two layers overlap and Plasma wins
-# because it is the actual desktop. Point the Folder View at an empty
-# directory so Plasma keeps the wallpaper while Caelestia supplies the icons.
-hide_kde_desktop_icons() {
-    local empty_dir="${XDG_DATA_HOME:-$HOME/.local/share}/caelestia/empty-desktop"
-    mkdir -p "$empty_dir"
-    local empty_url="file://$empty_dir"
+# The desktop containment is a Folder View: it draws ~/Desktop itself. Caelestia
+# draws those icons too, so the two layers overlap and Plasma wins because it is
+# the actual desktop. Point the Folder View at an empty directory so Plasma keeps
+# the wallpaper while Caelestia supplies the icons.
+#
+# Plasmashell keeps the setting in memory and only writes it back on a clean
+# exit, so a crash (or an upgrade that migrates the containment) brings the
+# duplicate icons back. The fix therefore ships as a helper that updates the
+# running shell *and* the config file, plus a user unit and a plasmashell
+# drop-in that both re-assert it - at login and after every plasmashell start.
+DESKTOP_ICONS_EMPTY_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/caelestia/empty-desktop"
+DESKTOP_ICONS_EMPTY_URL="file://$DESKTOP_ICONS_EMPTY_DIR"
+DESKTOP_ICONS_HELPER="$HOME/.local/bin/caelestia-hide-kde-desktop-icons"
+DESKTOP_ICONS_UNIT="$HOME/.config/systemd/user/caelestia-desktop-icons-guard.service"
+DESKTOP_ICONS_DROPIN="$HOME/.config/systemd/user/plasma-plasmashell.service.d/10-caelestia-desktop-icons.conf"
 
-    if qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
-        "var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].currentConfigGroup = ['General']; d[i].writeConfig('url', '$empty_url'); d[i].writeConfig('labelMode', 0); d[i].reloadConfig(); }" \
-        2>/dev/null; then
-        ok "KDE desktop icons hidden (Caelestia draws them)."
-        return 0
+write_desktop_icons_guard() {
+    mkdir -p "${DESKTOP_ICONS_HELPER%/*}" "$HOME/.config/systemd/user" "${DESKTOP_ICONS_DROPIN%/*}"
+
+    cat > "$DESKTOP_ICONS_HELPER" << 'HELPER'
+#!/usr/bin/env bash
+# Keep Plasma's desktop Folder View pointed at an empty directory: Caelestia
+# draws the desktop icons itself, so anything Plasma draws there is a duplicate.
+# Updates the running plasmashell (so it takes effect now) and the containment
+# config (so a crash, which skips plasmashell's own save, cannot undo it).
+set -uo pipefail
+
+empty_dir="${XDG_DATA_HOME:-$HOME/.local/share}/caelestia/empty-desktop"
+empty_url="file://$empty_dir"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.kde.plasma.desktop-appletsrc"
+mkdir -p "$empty_dir"
+
+# Prints "desktops=N ok=M" back through evaluateScript, which is the only way to
+# tell whether the desktops existed yet and whether the write took.
+js="var d = desktops(); var ok = 0; for (var i = 0; i < d.length; i++) { var c = d[i]; c.currentConfigGroup = ['General']; if (c.readConfig('url', '') !== '$empty_url') { c.writeConfig('url', '$empty_url'); c.writeConfig('labelMode', 0); c.reloadConfig(); } if (c.readConfig('url', '') === '$empty_url') ok++; } print('desktops=' + d.length + ' ok=' + ok);"
+
+for _ in 1 2 3 4 5; do
+    out="$(qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$js" 2>/dev/null || true)"
+    n="${out#*desktops=}"
+    n="${n%% *}"
+    m="${out#*ok=}"
+    m="${m%% *}"
+    if [[ "$n" =~ ^[0-9]+$ && "$m" =~ ^[0-9]+$ ]] && ((n > 0 && n == m)); then
+        break
     fi
+    sleep 2
+done
 
-    python3 - "$empty_url" <<'EOF' || { warn "Failed to hide the KDE desktop icons."; return 1; }
+# Keep the file in step as well.
+python3 - "$empty_url" "$config" << 'PY' >/dev/null 2>&1 || true
 import os
 import re
 import sys
 
 url = sys.argv[1]
-path = os.path.expanduser("~/.config/plasma-org.kde.plasma.desktop-appletsrc")
+path = sys.argv[2]
 if not os.path.exists(path):
     raise SystemExit(0)
 
@@ -141,16 +174,33 @@ lines = open(path, "r", encoding="utf-8").read().splitlines()
 
 desktop_id = None
 current = None
-is_desktop = False
+formfactor = None
+plugin = None
+DESKTOP_PLUGINS = ("org.kde.desktopcontainment", "org.kde.plasma.folder", "org.kde.plasma.desktop")
+
+def is_desktop_containment():
+    return formfactor == "0" and plugin in DESKTOP_PLUGINS
+
 for line in lines:
     s = line.strip()
     m = re.match(r"^\[Containments\]\[(\d+)\]$", s)
     if m:
         current = m.group(1)
-        is_desktop = False
-    elif current is not None and s == "formfactor=0":
-        is_desktop = True
-    elif current is not None and is_desktop and re.match(r"^plugin\s*=", s):
+        formfactor = None
+        plugin = None
+        continue
+    if s.startswith("["):
+        # Applet subgroups carry their own formfactor/plugin pairs, which must
+        # not be mistaken for the desktop containment itself.
+        current = None
+        continue
+    if current is None:
+        continue
+    if s.startswith("formfactor="):
+        formfactor = s.split("=", 1)[1].strip()
+    elif s.startswith("plugin="):
+        plugin = s.split("=", 1)[1].strip()
+    if desktop_id is None and is_desktop_containment():
         desktop_id = current
 
 if desktop_id is None:
@@ -189,8 +239,49 @@ if not seen_general:
 with open(path, "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")
 print("KDE desktop icons hidden in the containment config")
-EOF
-    ok "KDE desktop icons hidden (Caelestia draws them)."
+PY
+
+# Plasma has not written its configuration yet (first install): the drop-in
+# and the unit take care of the first session.
+[[ -f "$config" ]] || exit 0
+
+grep -qx "url=$empty_url" "$config" 2>/dev/null
+HELPER
+    chmod +x "$DESKTOP_ICONS_HELPER"
+
+    cat > "$DESKTOP_ICONS_UNIT" << UNIT
+[Unit]
+Description=Keep Plasma's desktop folder view empty (Caelestia draws the icons)
+After=plasma-plasmashell.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$DESKTOP_ICONS_HELPER
+
+[Install]
+WantedBy=default.target
+UNIT
+
+    cat > "$DESKTOP_ICONS_DROPIN" << UNIT
+[Service]
+ExecStartPost=$DESKTOP_ICONS_HELPER
+UNIT
+
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+    systemctl --user enable caelestia-desktop-icons-guard.service >/dev/null 2>&1 || true
+}
+
+hide_kde_desktop_icons() {
+    write_desktop_icons_guard
+
+    if "$DESKTOP_ICONS_HELPER"; then
+        ok "KDE desktop icons hidden (Caelestia draws them)."
+        return 0
+    fi
+
+    warn "Failed to hide the KDE desktop icons."
+    return 1
 }
 
 tweak_no_splash_screen() {
