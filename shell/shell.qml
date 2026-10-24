@@ -68,7 +68,6 @@ ShellRoot {
     ServiceLoader {}
 
     Background {}
-    BadAppleOverlay {}
 
     Drawers {}
 
