@@ -10,6 +10,7 @@ KDE_SCRIPT="$REPO_ROOT/scripts/04-deploy-kde.sh"
 UNINSTALL_SCRIPT="$REPO_ROOT/uninstall.sh"
 SYNC_SCRIPT="$REPO_ROOT/src/sddm/sync.sh"
 CLI="$REPO_ROOT/src/bin/caelestia"
+GREETD_LIB="$REPO_ROOT/scripts/lib/greetd-airlock.sh"
 
 PLASMA_LOGIN_HOOK="sudo /usr/local/bin/caelestia-greeter-sync --posthook"
 SDDM_HOOK="sudo /usr/share/sddm/themes/caelestia/scripts/sync.sh --posthook"
@@ -298,6 +299,29 @@ test_the_variant_survives_a_repoint() {
 
     assert_contains "$(cat "$SDDM_SCRIPT")" 'installed_variant "$INSTALL_DIR"' \
         "and the step should fall back to it, not to the default variant"
+}
+
+test_the_greeter_gets_the_icon_font_it_needs() {
+    # Airlock FontLoaders Google Sans Flex and Titan One from its own assets, but
+    # draws every icon with Material Symbols Rounded straight from fontconfig. The
+    # installer downloads that font into the user's own font directory, which the
+    # greeter account cannot read, so the login screen would render tofu boxes.
+    local script
+    script="$(cat "$GREETD_LIB")"
+
+    assert_contains "$script" 'install_greeter_fonts' \
+        "the greeter step should install the icon font it needs"
+    assert_contains "$script" '/usr/share/fonts/google-material-symbols' \
+        "it has to land in a directory the greeter account can read"
+    assert_contains "$script" 'runuser -u "$GREETER_USER" -- fc-match' \
+        "and be checked as the greeter, whose fontconfig cache is its own"
+    assert_contains "$script" 'install_greeter_fonts ||' \
+        "the install should run it, and survive it failing"
+    assert_not_contains "$script" 'fonts/MaterialSymbolsRounded.ttf"$' \
+        "writing it only into the user's font directory is the bug this guards"
+
+    assert_contains "$(cat "$UNINSTALL_SCRIPT")" '/usr/share/fonts/google-material-symbols' \
+        "uninstall should take the font it installed back out"
 }
 
 run_tests

@@ -78,15 +78,27 @@
         {
           "id": "INSTALL_SDDM",
           "type": "boolean",
-          "title": "SDDM login theme",
-          "help": "Pick the login screen. The KDE lock screen stays Caelestia either way.",
+          "title": "Login screen",
+          "help": "Configure a graphical login screen. The KDE lock screen stays Caelestia either way.",
           "default": true
+        },
+        {
+          "id": "LOGIN_MANAGER",
+          "type": "select",
+          "title": "Login screen",
+          "help": "airlock is the default: greetd with Airlock, a Material 3 login screen built on Quickshell and styled to match the Caelestia shell. sddm configures the SDDM themes below instead. none leaves your display manager untouched.",
+          "default": "airlock",
+          "options": [
+            "airlock",
+            "sddm",
+            "none"
+          ]
         },
         {
           "id": "SDDM_THEME",
           "type": "select",
-          "title": "Login theme",
-          "help": "material-you-dark is the pre-installed Material You greeter (default). caelestia is the bundled greeter with wallpaper and colour sync.",
+          "title": "SDDM login theme",
+          "help": "Only used when the login screen is sddm. material-you-dark is the pre-installed Material You theme. caelestia is the bundled greeter with wallpaper and colour sync.",
           "default": "material-you-dark",
           "options": [
             "material-you-dark",
@@ -97,7 +109,7 @@
           "id": "SDDM_THEME_VARIANT",
           "type": "select",
           "title": "Caelestia SDDM variant",
-          "help": "Only used when the login theme is Caelestia. Full: clock, system info, quotes, avatar, blur effects. Mini: centered login card, clean and minimal.",
+          "help": "Only used when the login screen is sddm and the theme is Caelestia. Full: clock, system info, quotes, avatar, blur effects. Mini: centered login card, clean and minimal.",
           "default": "full",
           "options": [
             "full",

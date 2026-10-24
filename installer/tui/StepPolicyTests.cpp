@@ -26,8 +26,8 @@ int main() {
   // would silently turn this suite into a pass.
   expect_skipped(true, "Update system", {{"SKIP_SYSTEM_UPDATE", "true"}});
   expect_skipped(false, "Update system", {{"SKIP_SYSTEM_UPDATE", "false"}});
-  expect_skipped(true, "Install SDDM theme", Answers{});
-  expect_skipped(false, "Install SDDM theme", {{"INSTALL_SDDM", "true"}});
+  expect_skipped(true, "Configure the login screen", Answers{});
+  expect_skipped(false, "Configure the login screen", {{"INSTALL_SDDM", "true"}});
   expect_skipped(true, "Install optional components", Answers{});
   expect_skipped(false, "Install optional components", {{"INSTALL_ZED", "true"}});
   expect_skipped(false, "Build Caelestia shell", Answers{});

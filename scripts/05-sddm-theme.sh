@@ -12,8 +12,43 @@ BUNDLE_DIR="${BUNDLE_DIR:?BUNDLE_DIR not set}"
 SRC_DIR="$BUNDLE_DIR/src/sddm"
 
 if [[ "${INSTALL_SDDM:-true}" != "true" ]]; then
-    skip "SDDM theme not selected."
+    skip "Login screen not selected."
     exit 0
+fi
+
+# Which login screen to configure.
+#   airlock           : greetd + Airlock, a Material 3 greeter built on
+#       Quickshell and styled to match the Caelestia shell. This is the default
+#       for new installs.
+#   material-you-dark : the pre-installed Material You SDDM theme. It needs no
+#       build and no wallpaper/colour sync, so we just point SDDM at it and get
+#       out of the way.
+#   caelestia         : the greeter bundled with this repo, with wallpaper and
+#       colour sync.
+# The KDE lock screen is configured separately and always stays Caelestia
+# regardless of this choice.
+LOGIN_MANAGER="${LOGIN_MANAGER:-airlock}"
+case "$LOGIN_MANAGER" in
+    airlock|sddm|none) ;;
+    *) die "Unknown login manager: $LOGIN_MANAGER (expected airlock, sddm or none)" ;;
+esac
+
+if [[ "$LOGIN_MANAGER" == "none" ]]; then
+    skip "No login manager change requested."
+    exit 0
+fi
+
+if [[ "$LOGIN_MANAGER" == "airlock" ]]; then
+    echo
+    echo ""
+    info "Configuring the Airlock greetd login screen"
+    echo ""
+    # shellcheck source=scripts/lib/greetd-airlock.sh
+    source "$(dirname "${BASH_SOURCE[0]}")/lib/greetd-airlock.sh"
+    if greetd_airlock_install; then
+        exit 0
+    fi
+    die "Airlock could not be installed. The SDDM login screen was left untouched."
 fi
 
 echo
@@ -24,7 +59,7 @@ echo ""
 # Which SDDM login theme to use.
 #   material-you-dark : the pre-installed Material You SDDM theme. It needs no
 #       build and no wallpaper/colour sync, so we just point SDDM at it and get
-#       out of the way. This is the default for new installs.
+#       out of the way. This is the default for SDDM installs.
 #   caelestia         : the greeter bundled with this repo, with wallpaper and
 #       colour sync. (The KDE lock screen is configured separately and always
 #       stays Caelestia regardless of this choice.)

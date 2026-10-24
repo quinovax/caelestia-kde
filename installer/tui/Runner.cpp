@@ -132,7 +132,7 @@ vector<Step> steps = {
     {"Apply KDE theme", "scripts/04-deploy-kde.sh", "PENDING", "configure"},
     {"Apply window rules", "scripts/04a-window-rules.sh", "PENDING",
      "configure"},
-    {"Install SDDM theme", "scripts/05-sddm-theme.sh", "PENDING", "configure"},
+    {"Configure the login screen", "scripts/05-sddm-theme.sh", "PENDING", "configure"},
     {"Enable system services", "scripts/06-services.sh", "PENDING",
      "configure"},
     {"Configure KDE applications", "scripts/07-kde-apps.sh", "PENDING",

@@ -14,7 +14,7 @@ bool is_skipped(const std::string &step_name,
   if (step_name == "Update system") {
     return answer_is_true(answers, "SKIP_SYSTEM_UPDATE");
   }
-  if (step_name == "Install SDDM theme") {
+  if (step_name == "Configure the login screen") {
     return !answer_is_true(answers, "INSTALL_SDDM");
   }
   if (step_name == "Install optional components") {

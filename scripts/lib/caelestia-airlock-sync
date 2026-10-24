@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Copy the live Caelestia palette into the greeting user's cache.
+#
+# Airlock ships a `--sync` flag, but it shells out to the upstream Python
+# caelestia-cli (`from caelestia.utils.scheme import get_scheme`), which this
+# repo does not install - it ships a bash CLI instead. So the palette is copied
+# straight from the scheme file the desktop already reads, which is the same
+# data and needs no Python package.
+#
+# Runs as root via sudo: the greeter cache is root-owned and the greeter cannot
+# read /home/<user>. Safe to run repeatedly; exits 0 when there is no scheme yet.
+set -uo pipefail
+
+user="${SUDO_USER:-${1:-}}"
+if [[ -z "$user" || "$user" == "root" ]]; then
+    echo "caelestia-airlock-sync: run me through sudo as the desktop user" >&2
+    exit 1
+fi
+
+home="$(getent passwd "$user" | cut -d: -f6)"
+[[ -n "$home" && -d "$home" ]] || exit 0
+
+scheme="$home/.local/state/caelestia/scheme.json"
+[[ -f "$scheme" ]] || exit 0
+
+cache=/var/cache/astra-airlock
+target="$cache/schemes/dynamic/$user"
+
+install -d -m 0755 -o greeter -g greeter "$target"
+
+# Airlock accepts the scheme either as {"colours": {...}} or as a bare colour map.
+python3 - "$scheme" "$target" "$user" << 'PY'
+import json
+import os
+import sys
+
+src, target, user = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    scheme = json.load(open(src))
+except Exception:
+    raise SystemExit(0)
+
+colours = scheme.get("colours")
+if not isinstance(colours, dict) or not colours:
+    raise SystemExit(0)
+
+payload = {
+    "name": "dynamic",
+    "flavour": scheme.get("flavour", "default"),
+    "mode": scheme.get("mode", "dark"),
+    "colours": colours,
+}
+
+for mode in ("dark", "light"):
+    payload["mode"] = mode
+    path = os.path.join(target, mode + ".json")
+    with open(path, "w") as handle:
+        json.dump(payload, handle, indent=2)
+    os.chmod(path, 0o644)
+    try:
+        import grp
+        import pwd
+        uid = pwd.getpwnam("greeter").pw_uid
+        gid = grp.getgrnam("greeter").gr_gid
+        os.chown(path, uid, gid)
+    except KeyError:
+        pass
+
+print("synced palette for", user)
+PY
+
+# Keep the avatar and wallpaper in step too; a stale one outlives a theme change.
+if [[ -f "$home/.face" ]]; then
+    SUDO_USER="$user" /usr/bin/astra-airlock --set-pfp "$home/.face" >/dev/null 2>&1 || true
+fi
+
+wall_file="$home/.local/state/caelestia/wallpaper/path.txt"
+if [[ -f "$wall_file" ]]; then
+    wall="$(tr -d "\n" < "$wall_file")"
+    if [[ -n "$wall" && -f "$wall" ]]; then
+        SUDO_USER="$user" /usr/bin/astra-airlock --set-wallpaper "$wall" >/dev/null 2>&1 || true
+    fi
+fi
+
+chown -R greeter:greeter "$cache" 2>/dev/null || true
+
+exit 0

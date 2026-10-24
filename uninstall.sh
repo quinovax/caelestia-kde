@@ -718,6 +718,34 @@ if [[ -f /etc/sudoers.d/caelestia-sddm-sync ]]; then
     ok "Removed sudoers rule: caelestia-sddm-sync"
 fi
 
+# Airlock (greetd) login screen: put the previous display manager back before
+# removing the greeter, otherwise the machine boots to a missing greeter.
+if [[ -f /usr/bin/astra-airlock ]]; then
+    if [[ -f /etc/greetd/config.toml.caelestia-orig ]]; then
+        caelestia_sudo mv -f /etc/greetd/config.toml.caelestia-orig /etc/greetd/config.toml
+        ok "Restored the previous greetd configuration"
+    fi
+    caelestia_sudo systemctl disable greetd.service >/dev/null 2>&1 || true
+    caelestia_sudo systemctl enable sddm.service >/dev/null 2>&1 || true
+    ok "Switched the login screen back to SDDM"
+
+    caelestia_sudo rm -rf /var/cache/astra-airlock
+    ok "Removed the Airlock greeter cache"
+    caelestia_sudo rm -rf /etc/xdg/quickshell/astra-airlock
+    caelestia_sudo rm -f /usr/bin/astra-airlock
+    caelestia_sudo rm -rf /usr/lib64/qt6/qml/Astra /usr/lib/qt6/qml/Astra
+    # Installed alongside the greeter because Airlock neither bundles nor
+    # FontLoaders Material Symbols Rounded; dropped with it so the machine is
+    # back to what it had before.
+    caelestia_sudo rm -rf /usr/share/fonts/google-material-symbols
+    caelestia_sudo fc-cache -f >/dev/null 2>&1 || true
+    ok "Removed Airlock"
+fi
+if [[ -f /etc/sudoers.d/caelestia-airlock-sync ]]; then
+    caelestia_sudo rm -f /etc/sudoers.d/caelestia-airlock-sync
+    ok "Removed sudoers rule: caelestia-airlock-sync"
+fi
+
 if [[ -d /usr/share/sddm/themes/caelestia ]]; then
     caelestia_sudo rm -rf /usr/share/sddm/themes/caelestia
     ok "Removed SDDM theme: /usr/share/sddm/themes/caelestia"
