@@ -35,6 +35,13 @@
           "default": true
         },
         {
+          "id": "INSTALL_PLASMAZONES",
+          "type": "boolean",
+          "title": "PlasmaZones",
+          "help": "Snap zones, autotiling and scrolling layouts for KWin. Replaces the old window-position KWin script.",
+          "default": true
+        },
+        {
           "id": "INSTALL_THUNAR",
           "type": "boolean",
           "title": "Thunar integration files",

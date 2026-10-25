@@ -4,6 +4,8 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/log.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/privileges.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/virtual-desktops.sh"
+# shellcheck source=scripts/lib/plasmazones.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/plasmazones.sh"
 
 echo
 echo ""
@@ -688,6 +690,10 @@ UNITEOF
     ok "Caelestia shell runs without the X11 input-method variables."
 }
 
+tweak_plasmazones() {
+    plasmazones_setup
+}
+
 tweak_waydroid_apps() {
     info "Unhiding Waydroid Android apps..."
     local bundle="${BUNDLE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -755,6 +761,7 @@ tweak_material_you_colors
 tweak_icon_theme
 tweak_cursor_theme
 tweak_input_method
+tweak_plasmazones
 tweak_reload_kde
 
 echo

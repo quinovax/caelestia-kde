@@ -444,7 +444,16 @@ fi
 kwriteconfig6 --file kwinrc --group "Plugins" --key "quickshell-kde-bridgeEnabled" "false" 2>/dev/null || true
 kwriteconfig6 --file kwinrc --group "Plugins" --key "krohnkiteEnabled"             "false" 2>/dev/null || true
 kwriteconfig6 --file kwinrc --group "Plugins" --key "kwin_workspace_trackerEnabled" "false" 2>/dev/null || true
-ok "Disabled KWin plugins: quickshell-kde-bridge, krohnkite, kwin_workspace_tracker"
+kwriteconfig6 --file kwinrc --group "Plugins" --key "plasmazonesEnabled"            "false" 2>/dev/null || true
+ok "Disabled KWin plugins: quickshell-kde-bridge, krohnkite, kwin_workspace_tracker, plasmazones"
+
+# PlasmaZones runs a user service of its own. Stop it, but leave the packages
+# installed: removing distribution packages is a user decision, and the COPR
+# can serve other desktops.
+if command -v systemctl >/dev/null 2>&1 && [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+    systemctl --user disable --now plasmazones.service >/dev/null 2>&1 || true
+fi
+ok "Stopped the PlasmaZones service (packages left installed)."
 
 kwriteconfig6 --file kwinrulesrc --group "caelestia-opacity" --key "Description"         --delete 2>/dev/null || true
 kwriteconfig6 --file kwinrulesrc --group "caelestia-opacity" --key "types"               --delete 2>/dev/null || true
