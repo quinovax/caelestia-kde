@@ -591,7 +591,6 @@ tweak_kwin_scripts_and_effects() {
     kwriteconfig6 --file kwinrc --group Plugins --key genieshowdesktopEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key squashEnabled false 2>/dev/null || true
-    kwriteconfig6 --file kwinrc --group Plugins --key rememberwindowpositionsEnabled true 2>/dev/null || true
     # This setup's look: Caelestia draws its own blur, so KWin's is off.
     kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false 2>/dev/null || true
     kwriteconfig6 --file kwinrc --group Plugins --key glassEnabled true 2>/dev/null || true
@@ -634,6 +633,59 @@ tweak_kwin_scripts_and_effects() {
     fi
 
     ok "KWin effects and window rules configured."
+}
+
+tweak_input_method() {
+    # A Fedora Wayland session inherits the X11-only "no input method" profile
+    # (QT_IM_MODULE=xim, XMODIFIERS=@im=none, GTK_IM_MODULE=gtk-im-context-simple),
+    # and the systemd user manager then hands those variables to every unit it
+    # starts. On Wayland fcitx5 reaches clients through the compositor's
+    # text-input protocol instead, and an application told to use
+    # gtk-im-context-simple never talks to fcitx5 at all, so its text fields stay
+    # inert. Clearing the variables is the documented Wayland configuration.
+    info "Pointing the session at fcitx5's Wayland text-input path..."
+
+    local cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+    # Plasma sources /etc/xdg/plasma-workspace/env/*.sh first and this directory
+    # last, so the unset wins whichever profile the distribution exported.
+    local env_dir="$cfg/plasma-workspace/env"
+    mkdir -p "$env_dir"
+    cat >"$env_dir/20-fcitx5-wayland.sh" <<'ENVEOF'
+#!/bin/sh
+# Caelestia: give the session fcitx5's Wayland text-input path.
+#
+# A Fedora Wayland session inherits the X11-only "no input method" profile
+# (QT_IM_MODULE=xim, XMODIFIERS=@im=none, GTK_IM_MODULE=gtk-im-context-simple).
+# On Wayland fcitx5 reaches applications through the compositor instead, and GTK
+# applications told to use gtk-im-context-simple never talk to it at all, so
+# nothing composes. Plasma sources the system directory before this one, so
+# clearing the variables here wins for the whole session.
+unset QT_IM_MODULE XMODIFIERS GTK_IM_MODULE SDL_IM_MODULE GLFW_IM_MODULE
+ENVEOF
+    chmod 0755 "$env_dir/20-fcitx5-wayland.sh"
+    ok "Session input-method environment cleaned: $env_dir/20-fcitx5-wayland.sh"
+
+    # The shell has to be fixed now rather than at the next login: the systemd
+    # user manager keeps the stale variables in its own environment and passes
+    # them to every unit it starts, so the unit drops them itself.
+    local unit_dir="$cfg/systemd/user/caelestia-shell.service.d"
+    mkdir -p "$unit_dir"
+    cat >"$unit_dir/20-input-method.conf" <<'UNITEOF'
+[Unit]
+Description=Use the Wayland text-input path for the shell (fcitx5 IME)
+
+[Service]
+UnsetEnvironment=QT_IM_MODULE XMODIFIERS GTK_IM_MODULE SDL_IM_MODULE GLFW_IM_MODULE
+UNITEOF
+
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user daemon-reload 2>/dev/null || true
+        if systemctl --user is-active --quiet caelestia-shell.service 2>/dev/null; then
+            systemctl --user restart caelestia-shell.service 2>/dev/null || true
+        fi
+    fi
+    ok "Caelestia shell runs without the X11 input-method variables."
 }
 
 tweak_waydroid_apps() {
@@ -702,6 +754,7 @@ tweak_shell_prefs
 tweak_material_you_colors
 tweak_icon_theme
 tweak_cursor_theme
+tweak_input_method
 tweak_reload_kde
 
 echo
