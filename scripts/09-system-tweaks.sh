@@ -127,6 +127,7 @@ DESKTOP_ICONS_EMPTY_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/caelestia/empty-de
 DESKTOP_ICONS_EMPTY_URL="file://$DESKTOP_ICONS_EMPTY_DIR"
 DESKTOP_ICONS_HELPER="$HOME/.local/bin/caelestia-hide-kde-desktop-icons"
 DESKTOP_ICONS_UNIT="$HOME/.config/systemd/user/caelestia-desktop-icons-guard.service"
+DESKTOP_ICONS_TIMER="$HOME/.config/systemd/user/caelestia-desktop-icons-guard.timer"
 DESKTOP_ICONS_DROPIN="$HOME/.config/systemd/user/plasma-plasmashell.service.d/10-caelestia-desktop-icons.conf"
 
 write_desktop_icons_guard() {
@@ -238,6 +239,9 @@ if not seen_general:
     out.append(f"url={url}")
     out.append("labelMode=0")
 
+if out == lines:
+    raise SystemExit(0)
+
 with open(path, "w", encoding="utf-8") as f:
     f.write("\n".join(out) + "\n")
 print("KDE desktop icons hidden in the containment config")
@@ -251,6 +255,8 @@ grep -qx "url=$empty_url" "$config" 2>/dev/null
 HELPER
     chmod +x "$DESKTOP_ICONS_HELPER"
 
+    # No RemainAfterExit: the timer below has to be able to run the same unit
+    # again, and a oneshot that stays "active" refuses to restart.
     cat > "$DESKTOP_ICONS_UNIT" << UNIT
 [Unit]
 Description=Keep Plasma's desktop folder view empty (Caelestia draws the icons)
@@ -258,11 +264,29 @@ After=plasma-plasmashell.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=$DESKTOP_ICONS_HELPER
 
 [Install]
 WantedBy=default.target
+UNIT
+
+    # plasmashell reads the folder-view URL from memory on some config
+    # migrations, so a one-off write at login is not enough: this re-asserts it
+    # a few minutes later and then periodically. The helper leaves the file
+    # alone when it is already correct, so the timer costs nothing.
+    cat > "$DESKTOP_ICONS_TIMER" << UNIT
+[Unit]
+Description=Re-assert the empty Plasma desktop folder view
+
+[Timer]
+OnBootSec=2min
+# OnUnitActiveSec cannot keep re-arming once the oneshot has exited, so the
+# periodic re-assert is a calendar timer.
+OnCalendar=*:0/10
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
 UNIT
 
     cat > "$DESKTOP_ICONS_DROPIN" << UNIT
@@ -272,6 +296,7 @@ UNIT
 
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     systemctl --user enable caelestia-desktop-icons-guard.service >/dev/null 2>&1 || true
+    systemctl --user enable --now caelestia-desktop-icons-guard.timer >/dev/null 2>&1 || true
 }
 
 hide_kde_desktop_icons() {
